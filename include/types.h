@@ -197,4 +197,6 @@ typedef uint8   ISO_639_2;
 #define EFI_OS_INDICATIONS_CAPSULE_RESULT_VAR_SUPPORTED \
                                                 0x0000000000000010
 
+#define ALIGN(x) __attribute__((__aligned__(x)))
+
 #endif // !EFI_ELF_TYPES

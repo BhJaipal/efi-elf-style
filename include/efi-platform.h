@@ -1,4 +1,6 @@
+#include "efi-api.h"
+
 void InitializeLibPlatform (
-    IN EFI_HANDLE           ImageHandle,
-    IN EFI_SYSTEM_TABLE     *SystemTable
+    input efi_handle_t           image_handle,
+    input efi_system_table_t     *system_table
 );
