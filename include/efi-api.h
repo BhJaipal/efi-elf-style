@@ -3,10 +3,6 @@
 #include "efi-devpath.h"
 #include "types.h"
 #include "efi-con.h"
-#include <efi/efi.h>
-#include <efi/efiapi.h>
-#include <efi/efidevp.h>
-#include <efi/efiprot.h>
 
 struct efi_system_table_t;
 
@@ -110,7 +106,7 @@ void
     );
 
 typedef
-EFI_STATUS
+efi_status
 (*efi_create_event_t) (
     input uint32                type,
     input efi_tpl_t             notify_tpl,
@@ -294,7 +290,7 @@ typedef
 efi_status
 (*efi_image_entry_point_t) (
     input efi_handle_t          image_handle,
-    input efi_system_table_t    *system_table
+    input struct efi_system_table_t    *system_table
     );
 
 
@@ -330,7 +326,7 @@ efi_status
 
 typedef
 efi_status
-(*efi_exit_boot_services) (
+(*efi_exit_boot_services_t) (
     input efi_handle_t  image_handle,
     input uint64        map_key
     );
@@ -503,7 +499,7 @@ typedef struct {
     union {
         efi_physical_addr_t    data_block;
 		efi_physical_addr_t    continuation_pointer;
-    } Union;
+    } group;
 } efi_capsule_block_descriptor_t;
 
 typedef struct {
@@ -552,68 +548,68 @@ typedef enum {
 typedef
 efi_status
 (*efi_install_protocol_interface_t) (
-    input output efi_handle_t           *Handle,
-    input efi_guid_t                 *Protocol,
-    input efi_interface_type_t       InterfaceType,
-    input void                     *Interface
+    input output efi_handle_t       *handle,
+    input efi_guid_t                *protocol,
+    input efi_interface_type_t      interface_type,
+    input void                      *interface
     );
 
 typedef
 efi_status
 (*efi_reinstall_protocol_interface_t) (
-    input efi_handle_t               Handle,
-    input efi_guid_t                 *Protocol,
-    input void                     *OldInterface,
-    input void                     *NewInterface
+    input efi_handle_t              handle,
+    input efi_guid_t                *protocol,
+    input void                      *old_interface,
+    input void                      *new_interface
     );
 
 typedef
 efi_status
 (*efi_uninstall_protocol_interface_t) (
-    input efi_handle_t               Handle,
-    input efi_guid_t                 *Protocol,
-    input void                     *Interface
+    input efi_handle_t          handle,
+    input efi_guid_t            *protocol,
+    input void                  *interface
     );
 
 typedef
 efi_status
 (*efi_handle_protocol_t) (
-    input efi_handle_t               Handle,
-    input efi_guid_t                 *Protocol,
-    output void                    **Interface
+    input efi_handle_t          handle,
+    input efi_guid_t            *protocol,
+    output void                 **interface
     );
 
 typedef
 efi_status
 (*efi_register_protocol_notify_t) (
-    input efi_guid_t                 *Protocol,
-    input efi_event_t                Event,
-    output void                    **Registration
+    input efi_guid_t            *protocol,
+    input efi_event_t           event,
+    output void                 **registration
     );
 
 typedef
 efi_status
 (*efi_locate_handle_t) (
-    input efi_locate_search_type_t  SearchType,
-    input efi_guid_t                *Protocol  optional,
-    input void                      *SearchKey optional,
-    input output uint64             *BufferSize,
-    output efi_handle_t             *Buffer
+    input efi_locate_search_type_t  search_type,
+    input efi_guid_t                *protocol   optional,
+    input void                      *search_key optional,
+    input output uint64             *buffer_size,
+    output efi_handle_t             *buffer
     );
 
 typedef
 efi_status
 (*efi_locate_device_path_t) (
-    input efi_guid_t                *Protocol,
-    input output efi_device_path_t  **DevicePath,
-    output efi_handle_t             *Device
+    input efi_guid_t                *protocol,
+    input output efi_device_path_t  **device_path,
+    output efi_handle_t             *device
     );
 
 typedef
 efi_status
 (*efi_install_configuration_table_t) (
-    input efi_guid_t        *Guid,
-    input void              *Table
+    input efi_guid_t                *guid,
+    input void                      *table
     );
 
 typedef efi_status (*efi_reserved_service_t) ();
@@ -638,27 +634,27 @@ typedef struct  {
     efi_table_header_t                header;
 
     // Time services
-    efi_get_time_t                    getTime;
-    efi_set_time_t                    setTime;
-    efi_get_wakeup_time_t             getWakeupTime;
-    efi_set_wakeup_time_t             setWakeupTime;
+    efi_get_time_t                    get_time;
+    efi_set_time_t                    set_time;
+    efi_get_wakeup_time_t             get_wakeup_time;
+    efi_set_wakeup_time_t             set_wakeup_time;
 
     // Virtual memory services
-    efi_set_virtual_address_map_t     setVirtualAddressMap;
-    efi_convert_pointer_t             convertPointer;
+    efi_set_virtual_address_map_t     set_virtual_address_map;
+    efi_convert_pointer_t             convert_pointer;
 
     // Variable serviers
-    efi_get_variable_t                getVariable;
-    efi_get_next_variable_name_t      getNextVariableName;
-    efi_set_variable_t                setVariable;
+    efi_get_variable_t                get_variable;
+    efi_get_next_variable_name_t      get_next_variable_name;
+    efi_set_variable_t                set_variable;
 
     // Misc
-    efi_get_next_high_mono_count_t    GetNextHighMonotonicCount;
-    efi_reset_system_t                ResetSystem;
+    efi_get_next_high_mono_count_t    get_next_high_monotonic_count;
+    efi_reset_system_t                reset_system;
 
-    efi_update_capsule_t              UpdateCapsule;
-    efi_query_capsule_capabilities_t  QueryCapsuleCapabilities;
-    efi_query_variable_info_t         QueryVariableInfo;
+    efi_update_capsule_t              update_capsule;
+    efi_query_capsule_capabilities_t  query_capsule_capabilities;
+    efi_query_variable_info_t         query_variable_info;
 } efi_runtime_services_t;
 
 // EFI Boot Services Table
@@ -666,66 +662,66 @@ typedef struct  {
 #define EFI_BOOT_SERVICES_SIGNATURE     0x56524553544f4f42
 #define EFI_BOOT_SERVICES_REVISION      (EFI_SPECIFICATION_MAJOR_REVISION<<16) | (EFI_SPECIFICATION_MINOR_REVISION)
 
-typedef struct _efi_boot_services {
+typedef struct efi_boot_services_t {
     efi_table_header_t              header;
 
     // Task priority functions
-    efi_raise_tpl_t                 RaiseTPL;
-    efi_restore_tpl_t               RestoreTPL;
+    efi_raise_tpl_t                 raise_tpl;
+    efi_restore_tpl_t               restore_tpl;
 
     // Memory functions
-    efi_allocate_pages_t            AllocatePages;
-    efi_free_pages_t                FreePages;
-    efi_get_memory_map_t            GetMemoryMap;
-    efi_allocate_pool_t             AllocatePool;
-    efi_free_pool_t                 FreePool;
+    efi_allocate_pages_t            allocate_pages;
+    efi_free_pages_t                free_pages;
+    efi_get_memory_map_t            get_memory_map;
+    efi_allocate_pool_t             allocate_pool;
+    efi_free_pool_t                 free_pool;
 
     // Event & timer functions
-    efi_create_event_t              CreateEvent;
-    efi_set_timer_t                 SetTimer;
-    efi_wait_for_event_t            WaitForEvent;
-    efi_signal_event_t              SignalEvent;
-    efi_close_event_t               CloseEvent;
-    efi_check_event_t               CheckEvent;
+    efi_create_event_t              create_event;
+    efi_set_timer_t                 set_timer;
+    efi_wait_for_event_t            wait_for_event;
+    efi_signal_event_t              signal_event;
+    efi_close_event_t               close_event;
+    efi_check_event_t               check_event;
 
     // Protocol handler functions
-    efi_install_protocol_interface_t    installProtocolInterface;
-    efi_reinstall_protocol_interface_t  reinstallProtocolInterface;
-    efi_uninstall_protocol_interface_t  uninstallProtocolInterface;
-    efi_handle_protocol_t               handleProtocol;
-    efi_handle_protocol_t               pCHandleProtocol;
-    efi_register_protocol_notify_t      registerProtocolNotify;
-    efi_locate_handle_t                 locateHandle;
-    efi_locate_device_path_t            locateDevicePath;
-    efi_install_configuration_table_t   installConfigurationTable;
+    efi_install_protocol_interface_t    install_protocol_interface;
+    efi_reinstall_protocol_interface_t  reinstall_protocol_interface;
+    efi_uninstall_protocol_interface_t  uninstall_protocol_interface;
+    efi_handle_protocol_t               handle_protocol;
+    efi_handle_protocol_t               pc_handle_protocol;
+    efi_register_protocol_notify_t      register_protocol_notify;
+    efi_locate_handle_t                 locate_handle;
+    efi_locate_device_path_t            locate_device_path;
+    efi_install_configuration_table_t   install_configuration_table;
 
     // Image functions
-    efi_image_load_t                LoadImage;
-    efi_image_start_t               StartImage;
-    efi_exit_t                      Exit;
-    efi_image_unload_t              UnloadImage;
-    EFI_EXIT_BOOT_SERVICES          ExitBootServices;
+    efi_image_load_t                load_image;
+    efi_image_start_t               start_image;
+    efi_exit_t                      exit;
+    efi_image_unload_t              unload_image;
+    efi_exit_boot_services_t        exit_boot_services;
 
     // Misc functions
-    efi_get_next_monotonic_count_t  GetNextMonotonicCount;
-    efi_stall_t                     Stall;
-    efi_set_watchdog_timer_t        SetWatchdogTimer;
+    efi_get_next_monotonic_count_t  get_next_monotonic_count;
+    efi_stall_t                     stall;
+    efi_set_watchdog_timer_t        set_watchdog_timer;
 
     // DriverSupport Services
-    efi_connect_controller_t        ConnectController;
-    efi_disconnect_controller_t     DisconnectController;
+    efi_connect_controller_t        connect_controller;
+    efi_disconnect_controller_t     disconnect_controller;
 
     // Open and Close Protocol Services
-    efi_open_protocol_t             OpenProtocol;
-    efi_close_protocol_t            closeProtocol;
-    efi_open_protocol_information_t OpenProtocolInformation;
+    efi_open_protocol_t             open_protocol;
+    efi_close_protocol_t            close_protocol;
+    efi_open_protocol_information_t open_protocol_information;
 
     // Library Services
-    efi_protocols_per_handle_t      ProtocolsPerHandle;
-    efi_locate_handle_buffer_t      LocateHandleBuffer;
-    efi_locate_protocol_t           LocateProtocol;
-    efi_install_multiple_protocol_interfaces_t      InstallMultipleProtocolInterfaces;
-    efi_uninstall_multiple_protocol_interfaces_t    UninstallMultipleProtocolInterfaces;
+    efi_protocols_per_handle_t                      protocols_per_handle;
+    efi_locate_handle_buffer_t                      locate_handle_buffer;
+    efi_locate_protocol_t                           locate_protocol;
+    efi_install_multiple_protocol_interfaces_t      install_multiple_protocol_interfaces;
+    efi_uninstall_multiple_protocol_interfaces_t    uninstall_multiple_protocol_interfaces;
 
     // 32-bit CRC Services
     efi_calculate_crc32_t             calculate_crc32;
@@ -773,21 +769,22 @@ typedef struct efi_system_table_t {
 
     int16                           *firmware_vendor;
     uint32                          firmware_revision;
+	uint32                          __padding;
 
-    efi_handle_t                    ConsoleInHandle;
-    simple_input_interface_t        *ConIn;
+    efi_handle_t                    console_in_handle;
+    simple_input_interface_t        *stdin;
 
-    efi_handle_t                    ConsoleOutHandle;
-    simple_text_output_interface_t  *ConOut;
+    efi_handle_t                    console_out_handle;
+    simple_text_output_interface_t  *stdout;
 
-    efi_handle_t                    StandardErrorHandle;
-    simple_text_output_interface_t  *StdErr;
+    efi_handle_t                    standard_error_handle;
+    simple_text_output_interface_t  *stderr;
 
-    efi_runtime_services_t          *RuntimeServices;
-    efi_boot_services_t             *BootServices;
+    efi_runtime_services_t          *runtime_services;
+    efi_boot_services_t             *boot_services;
 
-    uint64                          NumberOfTableEntries;
-    efi_configuration_table_t       *ConfigurationTable;
+    uint64                          number_of_table_entries;
+    efi_configuration_table_t       *configuration_table;
 
 } efi_system_table_t;
 

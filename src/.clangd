@@ -1,0 +1,5 @@
+CompileFlags:
+  Add:
+    - -nostdinc
+    - -I/usr/include/efi
+    - -I../include

@@ -265,6 +265,8 @@ typedef struct {
 #define SCAN_F12                        0x0016
 #define SCAN_ESC                        0x0017
 
+struct simple_input_interface_t;
+
 typedef
 efi_status
 (*efi_input_reset_t) (

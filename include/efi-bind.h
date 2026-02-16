@@ -22,6 +22,23 @@
                     alias ("InitializeDriver")));
 
 
+#define EFIERR(a)           (0x8000000000000000 | a)
+#define EFI_ERROR_MASK      0x8000000000000000
+#define EFIERR_OEM(a)       (0xc000000000000000 | a)      
+
+
+#define BAD_POINTER         0xFBFBFBFBFBFBFBFB
+#define MAX_ADDRESS         0xFFFFFFFFFFFFFFFF
+#define BREAKPOINT()        while (true);    // Make it hang on Bios[Dbg]32
+
+#define MIN_ALIGNMENT_SIZE  4
+
+#define ALIGN_VARIABLE(value, adjustment) \
+            (uint64)adjustment = 0; \
+            if((uint64)value % MIN_ALIGNMENT_SIZE) \
+                (uint64)adjustment = MIN_ALIGNMENT_SIZE - ((uint64)value % MIN_ALIGNMENT_SIZE); \
+            value = (uint64)value + (uint64)adjustment
+
 // Simpler and better, stdcall wrapper implemented with using some brain
 #undef uefi_call_wrapper
 #define uefi_call_wrapper(func,va_num,...)              \
