@@ -219,8 +219,6 @@ typedef simple_text_output_interface_t efi_simple_text_out_protocol_t;
     { 0x387477c1, 0x69c7, 0x11d2, {0x8e, 0x39, 0x0, 0xa0, 0xc9, 0x69, 0x72, 0x3b} }
 #define SIMPLE_TEXT_INPUT_PROTOCOL EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID
 
-struct _SIMPLE_INPUT_intERFACE;
-
 typedef struct {
     uint16                              scan_code;
     int16                              unicode_char;

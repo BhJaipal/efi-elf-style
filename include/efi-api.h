@@ -7,71 +7,14 @@
 struct efi_system_table_t;
 
 // EFI Memory
-typedef
-efi_status
-(*efi_allocate_pages_t) (
-    input efi_allocate_type_t   type,
-    input efi_memory_type_t     memory_type,
-    input uint64                no_pages,
-    output efi_physical_addr_t  *memory
-    );
-
-typedef
-efi_status
-(*efi_free_pages_t) (
-    input efi_physical_addr_t  memory,
-    input uint64               no_pages
-    );
-
-typedef
-efi_status
-(*efi_get_memory_map_t) (
-    input output uint64                     *memory_map_size,
-    input output efi_memory_descriptor_t    *memory_map,
-    output uint64                           *map_key,
-    output uint64                           *descriptor_size,
-    output uint32                           *descriptor_version
-    );
-
 #undef NextMemoryDescriptor
 #define NextMemoryDescriptor(Ptr,Size)  ((efi_memory_descriptor_t *) (((uint8 *) Ptr) + Size))
-
-
-typedef
-efi_status
-(*efi_allocate_pool_t) (
-    input efi_memory_type_t pool_type,
-    input uint64            size,
-    output void             **buffer
-    );
-
-typedef
-efi_status
-(*efi_free_pool_t) (
-	input void  *buffer
-	);
-
-typedef
-efi_status
-(*efi_set_virtual_address_map_t) (
-    input uint64                    memory_map_size,
-    input uint64                    descriptor_size,
-    input uint32                    descriptor_version,
-    input efi_memory_descriptor_t   *virtual_map
-    );
 
 
 #define EFI_OPTIONAL_PTR            0x00000001
 #define EFI_INTERNAL_FNC            0x00000002      // Pointer to internal runtime fnc
 #define EFI_INTERNAL_PTR            0x00000004      // Pointer to internal runtime data
 
-
-typedef
-efi_status
-(*efi_convert_pointer_t) (
-    input uint64        debug_disposition,
-    input output void   **address
-    );
 
 // EFI Events
 #define EVT_TIMER                           0x80000000
@@ -105,15 +48,6 @@ void
     input void          *context
     );
 
-typedef
-efi_status
-(*efi_create_event_t) (
-    input uint32                type,
-    input efi_tpl_t             notify_tpl,
-    input efi_event_notify_t    notify_function,
-    input void                  *notify_context,
-    output efi_event_t          *event
-    );
 
 typedef enum {
     TIMER_CANCEL,
@@ -121,29 +55,6 @@ typedef enum {
     TIMER_RELATIVE,
     TIMER_TYPE_MAX
 } efi_timer_delay_t;
-
-typedef
-efi_status
-(*efi_set_timer_t) (
-    input efi_event_t       event,
-    input efi_timer_delay_t type,
-    input uint64            trigger_time
-    );
-
-typedef efi_status (*efi_signal_event_t) (input efi_event_t event);
-
-typedef 
-efi_status
-(*efi_wait_for_event_t) (
-    input uint64            number_of_events,
-    input efi_event_t       *event,
-    output uint64           *index
-    );
-
-typedef efi_status (*efi_close_event_t) (input efi_event_t event);
-
-typedef efi_status (*efi_check_event_t) (input efi_event_t event);
-
 
 // Task priority level
 #define TPL_APPLICATION       4
@@ -154,9 +65,6 @@ typedef efi_status (*efi_check_event_t) (input efi_event_t event);
 #define EFI_TPL_CALLBACK     TPL_CALLBACK
 #define EFI_TPL_NOTIFY       TPL_NOTIFY
 #define EFI_TPL_HIGH_LEVEL   TPL_HIGH_LEVEL
-
-typedef efi_tpl_t (*efi_raise_tpl_t) (input efi_tpl_t  new_tpl);
-typedef void    (*efi_restore_tpl_t) (input efi_tpl_t  old_tpl);
 
 // EFI platform varibles
 #define EFI_GLOBAL_VARIABLE     \
@@ -174,35 +82,6 @@ typedef void    (*efi_restore_tpl_t) (input efi_tpl_t  old_tpl);
 // Variable size limitation
 #define EFI_MAXIMUM_VARIABLE_SIZE           1024
 
-typedef
-efi_status
-(*efi_get_variable_t) (
-    input int16         *variable_name,
-    input efi_guid_t    *vendor_guid,
-    output uint32       *attributes optional,
-    input output uint64 *data_size,
-    output void         *data
-    );
-
-typedef
-efi_status
-(*efi_get_next_variable_name_t) (
-    input output uint64       *variable_name_size,
-    input output int16        *variable_name,
-    input output efi_guid_t   *vendor_guid
-    );
-
-
-typedef
-efi_status
-(*efi_set_variable_t) (
-    input int16         *variable_name,
-    input efi_guid_t    *vendor_guid,
-    input uint32        attributes,
-    input uint64        data_size,
-    input void          *data
-    );
-
 
 // EFI Time
 typedef struct {
@@ -211,30 +90,6 @@ typedef struct {
         bool    sets_to_zero;     // Set clears sub-second time
 } efi_time_capabilities_t;
 
-
-typedef
-efi_status
-(*efi_get_time_t) (
-    output efi_time_t                    *time,
-    output efi_time_capabilities_t       *capabilities optional
-    );
-
-typedef efi_status (*efi_set_time_t) (input efi_time_t *time);
-
-typedef
-efi_status
-(*efi_get_wakeup_time_t) (
-    output bool         *enabled,
-    output bool         *pending,
-    output efi_time_t   *time
-    );
-
-typedef
-efi_status
-(*efi_set_wakeup_time_t) (
-    input bool         enable,
-    input efi_time_t   *time optional
-    );
 
 // Image functions
 
@@ -481,18 +336,7 @@ typedef enum {
     EFI_RESET_SHUTDOWN
 } efi_reset_type_t;
 
-typedef
-efi_status
-(*efi_reset_system_t) (
-    input efi_reset_type_t  reset_type,
-    input efi_status        reset_status,
-    input uint64            data_size,
-    input int16             *reset_data optional
-    );
-
 typedef efi_status (*efi_get_next_monotonic_count_t) (output uint64 *count);
-
-typedef efi_status (*efi_get_next_high_mono_count_t) (output uint32 *high_count);
 
 typedef struct {
     uint64                     length;
@@ -512,32 +356,6 @@ typedef struct {
 #define CAPSULE_FLAGS_PERSIST_ACROSS_RESET    0x00010000
 #define CAPSULE_FLAGS_POPULATE_SYSTEM_TABLE   0x00020000
 #define CAPSULE_FLAGS_INITIATE_RESET          0x00040000
-
-typedef
-efi_status
-(*efi_update_capsule_t) (
-    input efi_capsule_header_t  **capsule_header_array,
-    input uint64                capsule_count,
-    input efi_physical_addr_t   scatter_gather_list optional
-    );
-
-typedef
-efi_status
-(*efi_query_capsule_capabilities_t) (
-    input  efi_capsule_header_t     **capsule_header_array,
-    input  uint64                   capsule_count,
-    output uint64                   *maximum_capsule_size,
-    output efi_reset_type_t         *reset_type
-    );
-
-typedef
-efi_status
-(*efi_query_variable_info_t) (
-    input  uint32       mttributes,
-    output uint64       *maximum_variable_storage_size,
-    output uint64       *remaining_variable_storage_size,
-    output uint64       *maximum_variable_size
-    );
 
 // Protocol handler functions
 typedef enum {
@@ -630,31 +448,99 @@ typedef struct {
 #define EFI_RUNTIME_SERVICES_SIGNATURE  0x56524553544e5552
 #define EFI_RUNTIME_SERVICES_REVISION   (EFI_SPECIFICATION_MAJOR_REVISION<<16) | (EFI_SPECIFICATION_MINOR_REVISION)
 
-typedef struct  {
-    efi_table_header_t                header;
+typedef struct efi_runtime_services_t {
+	efi_table_header_t                header;
 
-    // Time services
-    efi_get_time_t                    get_time;
-    efi_set_time_t                    set_time;
-    efi_get_wakeup_time_t             get_wakeup_time;
-    efi_set_wakeup_time_t             set_wakeup_time;
+	// Time services
+	struct {
+		efi_status (*get_time) (
+			output efi_time_t                    *time,
+			output efi_time_capabilities_t       *capabilities optional
+			);
 
-    // Virtual memory services
-    efi_set_virtual_address_map_t     set_virtual_address_map;
-    efi_convert_pointer_t             convert_pointer;
+		efi_status (*set_time) (
+			input efi_time_t *time
+			);
 
-    // Variable serviers
-    efi_get_variable_t                get_variable;
-    efi_get_next_variable_name_t      get_next_variable_name;
-    efi_set_variable_t                set_variable;
+		efi_status (*get_wakeup_time) (
+			output bool         *enabled,
+			output bool         *pending,
+			output efi_time_t   *time
+			);
+
+		efi_status (*set_wakeup_time) (
+			input bool         enable,
+			input efi_time_t   *time optional
+			);
+	} time;
+
+	// Virtual memory services
+	efi_status (*set_virtual_address_map) (
+		input uint64                    memory_map_size,
+		input uint64                    descriptor_size,
+		input uint32                    descriptor_version,
+		input efi_memory_descriptor_t   *virtual_map
+		);
+
+	efi_status (*convert_pointer) (
+		input uint64        debug_disposition,
+		input output void   **address
+		);
+
+	// Variable serviers
+	struct {
+		efi_status (*get_variable) (
+			input int16         *variable_name,
+			input efi_guid_t    *vendor_guid,
+			output uint32       *attributes optional,
+			input output uint64 *data_size,
+			output void         *data
+			);
+
+		efi_status (*get_next_variable_name) (
+			input output uint64       *variable_name_size,
+			input output int16        *variable_name,
+			input output efi_guid_t   *vendor_guid
+			);
+
+		efi_status (*set_variable) (
+			input int16         *variable_name,
+			input efi_guid_t    *vendor_guid,
+			input uint32        attributes,
+			input uint64        data_size,
+			input void          *data
+			);
+	} variable;
 
     // Misc
-    efi_get_next_high_mono_count_t    get_next_high_monotonic_count;
-    efi_reset_system_t                reset_system;
+    efi_status (*get_next_high_monotonic_count) (output uint32 *high_count);
 
-    efi_update_capsule_t              update_capsule;
-    efi_query_capsule_capabilities_t  query_capsule_capabilities;
-    efi_query_variable_info_t         query_variable_info;
+    efi_status (*reset_system) (
+		input efi_reset_type_t  reset_type,
+		input efi_status        reset_status,
+		input uint64            data_size,
+		input int16             *reset_data optional
+		);
+
+    efi_status (*update_capsule) (
+		input efi_capsule_header_t  **capsule_header_array,
+		input uint64                capsule_count,
+		input efi_physical_addr_t   scatter_gather_list optional
+		);
+
+    efi_status (*query_capsule_capabilities) (
+		input  efi_capsule_header_t     **capsule_header_array,
+		input  uint64                   capsule_count,
+		output uint64                   *maximum_capsule_size,
+		output efi_reset_type_t         *reset_type
+		);
+
+    efi_status (*query_variable_info) (
+		input  uint32       mttributes,
+		output uint64       *maximum_variable_storage_size,
+		output uint64       *remaining_variable_storage_size,
+		output uint64       *maximum_variable_size
+		);
 } efi_runtime_services_t;
 
 // EFI Boot Services Table
@@ -665,24 +551,69 @@ typedef struct  {
 typedef struct efi_boot_services_t {
     efi_table_header_t              header;
 
-    // Task priority functions
-    efi_raise_tpl_t                 raise_tpl;
-    efi_restore_tpl_t               restore_tpl;
+	// Task priority functions
+    efi_tpl_t (*raise_tpl) (input efi_tpl_t  new_tpl);
+    void    (*restore_tpl) (input efi_tpl_t  old_tpl);
 
-    // Memory functions
-    efi_allocate_pages_t            allocate_pages;
-    efi_free_pages_t                free_pages;
-    efi_get_memory_map_t            get_memory_map;
-    efi_allocate_pool_t             allocate_pool;
-    efi_free_pool_t                 free_pool;
+	// Memory functions
+	struct {
+		efi_status (*allocate_pages) (
+			input efi_allocate_type_t   type,
+			input efi_memory_type_t     memory_type,
+			input uint64                no_pages,
+			output efi_physical_addr_t  *memory
+			);
 
-    // Event & timer functions
-    efi_create_event_t              create_event;
-    efi_set_timer_t                 set_timer;
-    efi_wait_for_event_t            wait_for_event;
-    efi_signal_event_t              signal_event;
-    efi_close_event_t               close_event;
-    efi_check_event_t               check_event;
+		efi_status (*free_pages) (
+			input efi_physical_addr_t  memory,
+			input uint64               no_pages
+			);
+
+		efi_status (*get_memory_map) (
+			input output uint64                     *memory_map_size,
+			input output efi_memory_descriptor_t    *memory_map,
+			output uint64                           *map_key,
+			output uint64                           *descriptor_size,
+			output uint32                           *descriptor_version
+			);
+
+		efi_status (*allocate_pool) (
+			input efi_memory_type_t pool_type,
+			input uint64            size,
+			output void             **buffer
+			);
+
+		efi_status (*free_pool) (
+			input void  *buffer
+			);
+	} memory;
+
+	// Event & timer functions
+	struct {
+		efi_status (*create_event) (
+			input uint32                type,
+			input efi_tpl_t             notify_tpl,
+			input efi_event_notify_t    notify_function,
+			input void                  *notify_context,
+			output efi_event_t          *event
+			);
+
+		efi_status (*set_timer) (
+			input efi_event_t       event,
+			input efi_timer_delay_t type,
+			input uint64            trigger_time
+			);
+
+		efi_status (*wait_for_event) (
+			input uint64            number_of_events,
+			input efi_event_t       *event,
+			output uint64           *index
+			);
+
+		efi_status (*signal_event) (input efi_event_t event);
+		efi_status (*close_event)  (input efi_event_t event);
+		efi_status (*check_event)  (input efi_event_t event);
+	} event;
 
     // Protocol handler functions
     efi_install_protocol_interface_t    install_protocol_interface;
@@ -772,10 +703,10 @@ typedef struct efi_system_table_t {
 	uint32                          __padding;
 
     efi_handle_t                    console_in_handle;
-    simple_input_interface_t        *stdin;
+    simple_input_interface_t        *cin;
 
     efi_handle_t                    console_out_handle;
-    simple_text_output_interface_t  *stdout;
+    simple_text_output_interface_t  *cout;
 
     efi_handle_t                    standard_error_handle;
     simple_text_output_interface_t  *stderr;
@@ -789,4 +720,3 @@ typedef struct efi_system_table_t {
 } efi_system_table_t;
 
 #endif // !EFI_ELF_API
-

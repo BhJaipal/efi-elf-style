@@ -41,7 +41,7 @@ typedef char bool;
 
 
 /**
- * Full description: https://uefi.org/specs/UEFI/2.10/Apx_A_GUID_and_Time_Formats.html
+ * INFO: Full description: https://uefi.org/specs/UEFI/2.10/Apx_A_GUID_and_Time_Formats.html
  * 
  *         Mnemonic        |  Byte Offset  |  Byte Length  |           Description
  *         TimeLow         |      0        |       4       | The low field of the timestamp.
