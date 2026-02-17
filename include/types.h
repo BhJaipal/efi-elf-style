@@ -1,10 +1,6 @@
 #ifndef EFI_ELF_TYPES
 #define EFI_ELF_TYPES
 
-#ifdef WIN32
-# error "Why? Just Why? Remove this if you wanna do it anyways"
-#endif // WIN32
-
 typedef unsigned long       uint64;
 typedef long                int64;
 typedef unsigned int        uint32;

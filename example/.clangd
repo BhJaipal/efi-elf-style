@@ -1,4 +1,6 @@
 CompileFlags:
   Add:
+    - -target
+    - x86_64-unknown-windows-gnu
     - -I/usr/include/efi
     - -I../include
