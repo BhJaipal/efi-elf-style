@@ -6,7 +6,10 @@ LDFLAGS = -nostdlib \
     		-Wl,--file-alignment,512 \
     		-Wl,--section-alignment,4096
 
-CC = x86_64-w64-mingw32-gcc-win32
+ARCH = x86_64-w64-mingw32
+CC = $(ARCH)-gcc-win32
+
+all: run
 
 build/%.o: %.c
 	$(CC) -I/usr/include/efi/ -Iinclude $(CFLAGS) -Wall -c $< -o $@
@@ -14,10 +17,10 @@ build/%.o: %.c
 
 main.efi: build/example/new.o build/src/efi-string.o
 	$(CC) $(LDFLAGS) /lib/libefi.a /lib/libgnuefi.a $^ -o $@
-	x86_64-w64-mingw32-objcopy -R .comment -R .note -R .note.gnu.build-id main.efi
+	$(ARCH)-objcopy -R .comment -R .note -R .note.gnu.build-id main.efi
 
 
-boot: main.efi
+uefi.img: main.efi
 	# 1. Create a 64MB empty file
 	dd if=/dev/zero of=uefi.img bs=1M count=64
 	
@@ -26,10 +29,10 @@ boot: main.efi
 	parted uefi.img -s mkpart EFI fat32 1MiB 100%
 	parted uefi.img -s set 1 esp on
 	
-	mformat -i uefi.img@@1M -F
-	mmd -i uefi.img@@1M ::/EFI
-	mmd -i uefi.img@@1M ::/EFI/BOOT
-	mcopy -i uefi.img@@1M main.efi ::/EFI/BOOT/BOOTX64.EFI
+	mformat -i $@@@1M -F
+	mmd -i $@@@1M ::/EFI
+	mmd -i $@@@1M ::/EFI/BOOT
+	mcopy -i $@@@1M $< ::/EFI/BOOT/BOOTX64.EFI
 	
-	# Run QEMU (adding -show-cursor can help if you're doing GUI stuff)
-	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -drive file=uefi.img,format=raw -net none
+run: uefi.img
+	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -drive file=$<,format=raw -net none
