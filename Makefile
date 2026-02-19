@@ -9,7 +9,6 @@ LDFLAGS = -nostdlib \
 ARCH = x86_64-w64-mingw32
 CC = $(ARCH)-gcc-win32
 
-LIBS = /lib/libefi.a /lib/libgnuefi.a
 
 all: run
 
@@ -18,7 +17,7 @@ build/%.o: %.c
 
 
 main.efi: build/example/new.o build/src/efi-string.o build/src/efi-lib.o
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^
 	$(ARCH)-objcopy -R .comment -R .note -R .note.gnu.build-id main.efi
 
 
