@@ -3,13 +3,15 @@
 #include "types.h"
 #include <efi-string.h>
 #include <efi-err.h>
+#include <efi-lib.h>
 
-
+__attribute__((ms_abi))
 efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
-	uint16 msg[] = u"Hello world\r\nPress Q to exit\r\n";
 	system_table->cout->set_attribute(system_table->cout, EFI_TEXT_ATTR(EFI_YELLOW, EFI_GREEN));
 	system_table->cout->clear_screen (system_table->cout);
-	system_table->cout->output_string(system_table->cout, (int16*)msg);
+	initialize_lib(img_handle, system_table);
+	long x = printf("Hello %s %d %f %d\r\n", "world", 73, -2.34, 0.0);
+	printf("Bytes written to screen: %d\r\nPress Q to exit\r\n", x);
 
 	efi_input_key_t key;
 	while (true) {
@@ -18,7 +20,7 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 			msg[15] = key.unicode_char;
 			system_table->cout->output_string(system_table->cout, (int16*)msg);
 			if (key.unicode_char == 'Q' || key.unicode_char == 'q') {
-				system_table->runtime_services->reset_system(EFI_RESET_SHUTDOWN, 0, 0, NULL);
+				shutdown();
 			}
 		}
 		asm("hlt");
