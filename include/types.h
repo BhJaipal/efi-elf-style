@@ -9,6 +9,9 @@ typedef unsigned short      uint16;
 typedef short               int16;
 typedef unsigned char       uint8;
 typedef char                int8;
+typedef short               wchar;
+typedef unsigned short      wuchar;
+typedef unsigned char       uchar;
 
 #define STRUCT(NAME, MEMBERS)   \
 	typedef _##NAME {           \
@@ -164,18 +167,14 @@ typedef enum {
 typedef struct {
     uint32              type;           // Field size is 32 bits followed by 32 bit pad
     uint32              pad;
-    efi_physical_addr_t physicalStart;  // Field size is 64 bits
-    efi_virtual_addr_t  virtualStart;   // Field size is 64 bits
-    uint64              numberOfPages;  // Field size is 64 bits
+    efi_physical_addr_t physical_start;  // Field size is 64 bits
+    efi_virtual_addr_t  virtual_start;   // Field size is 64 bits
+    uint64              number_of_pages;  // Field size is 64 bits
     uint64              attribute;      // Field size is 64 bits
 } efi_memory_descriptor_t;
 
-typedef uint8   ISO_639_2;
+typedef uint8   iso_639_2_t;
 #define ISO_639_2_ENTRY_SIZE    3
-
-//
-//
-//
 
 #define EFI_PAGE_SIZE   4096
 #define EFI_PAGE_MASK   0xFFF

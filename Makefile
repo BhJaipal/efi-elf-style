@@ -1,4 +1,4 @@
-CFLAGS  = -ffreestanding -fno-stack-protector -fno-stack-check -fshort-wchar -mno-red-zone -mabi=ms -Wall
+CFLAGS  = -ffreestanding -fno-stack-protector -fno-stack-check -fshort-wchar -mno-red-zone -mabi=ms -Wall -Wno-pointer-to-int-cast
 LDFLAGS = -nostdlib \
     		-Wl,-subsystem,10 \
     		-Wl,-entry,efi_main \
@@ -9,14 +9,25 @@ LDFLAGS = -nostdlib \
 ARCH = x86_64-w64-mingw32
 CC = $(ARCH)-gcc-win32
 
+define SRC_to_OBJ
+build/$(basename $(1)).o
+endef
+
+SRC := $(wildcard src/*.c) src/efi_stub.S
+OBJ := $(foreach src, $(SRC), $(call SRC_to_OBJ,$(src)))
+
+MAIN = example/new.c
 
 all: run
+
+build/%.o: %.S
+	$(CC) -I/usr/include/efi/ -Iinclude $(CFLAGS) -Wall -c $< -o $@
 
 build/%.o: %.c
 	$(CC) -I/usr/include/efi/ -Iinclude $(CFLAGS) -Wall -c $< -o $@
 
 
-main.efi: build/example/new.o build/src/efi-string.o build/src/efi-lib.o
+main.efi: $(call SRC_to_OBJ,$(MAIN)) $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 	$(ARCH)-objcopy -R .comment -R .note -R .note.gnu.build-id main.efi
 

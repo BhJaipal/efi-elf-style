@@ -1,6 +1,5 @@
-#include "efi-api.h"
-#include "types.h"
 #include <efi-lib.h>
+
 #define VA __va_list_tag*
 
 long print_str(char* str);
@@ -10,16 +9,6 @@ long print_long(long val);
  * @precision: float 7 and double 15 precision
  */
 long print_double(double val, char precision);
-
-
-// Global variables to hold the pointers
-static efi_system_table_t *ST = NULL;
-static efi_boot_services_t *BS = NULL;
-
-void initialize_lib(efi_handle_t ImageHandle, efi_system_table_t *SystemTable) {
-    ST = SystemTable;
-    BS = SystemTable->boot_services;
-}
 
 long printf(const char *fmt, ...) {
 	va_list args;
@@ -45,7 +34,7 @@ long vprint(unsigned char* str, va_list args) {
 	while (c) {
 		if (c != '%') {
 			if (n == 255) {
-				ST->cout->output_string(ST->cout, buff);
+				global.sys->cout->output_string(global.sys->cout, buff);
 				n = 0;
 			}
 			buff[n++] = c;
@@ -56,7 +45,7 @@ long vprint(unsigned char* str, va_list args) {
 			continue;
 		}
 		if (n) {
-			ST->cout->output_string(ST->cout, buff);
+			global.sys->cout->output_string(global.sys->cout, buff);
 			n = 0;
 		}
 		switch (str[1]) {
@@ -76,21 +65,26 @@ long vprint(unsigned char* str, va_list args) {
 			case 'f':
 				res_len += print_double(va_arg(args, double), 7);
 				break;
+			case 'c':
+				res_len++;
+				short str__c[2] = {(char)va_arg(args, int), 0};
+				global.sys->cout->output_string(global.sys->cout, (str__c));
+				break;
 			case 'd':
 				res_len += print_long(va_arg(args, long));
 				break;
 			case '%':
-				ST->cout->output_string(ST->cout, (short*)u"%");
+				global.sys->cout->output_string(global.sys->cout, (short*)u"%");
 				n++;
 				res_len++;
 				break;
 			default:
-				ST->cout->output_string(ST->cout, (short*)u"%");
+				global.sys->cout->output_string(global.sys->cout, (short*)u"%");
 				res_len++;
 				if (str[1]) {
 					int s = str[1];
 					s &= 0x0000ffff;
-					ST->cout->output_string(ST->cout, (short*)&s);
+					global.sys->cout->output_string(global.sys->cout, (short*)&s);
 					str--;
 					res_len++;
 				}
@@ -99,7 +93,7 @@ long vprint(unsigned char* str, va_list args) {
 		c = *str;
 	}
 	if (n) {
-		ST->cout->output_string(ST->cout, buff);
+		global.sys->cout->output_string(global.sys->cout, buff);
 		n = 0;
 	}
 	return res_len;
@@ -113,7 +107,7 @@ long vwprint(unsigned short* str, va_list args) {
 	while (c) {
 		if (c != '%') {
 			if (n == 255) {
-				ST->cout->output_string(ST->cout, buff);
+				global.sys->cout->output_string(global.sys->cout, buff);
 				n = 0;
 			}
 			buff[n++] = c;
@@ -124,7 +118,7 @@ long vwprint(unsigned short* str, va_list args) {
 			continue;
 		}
 		if (n) {
-			ST->cout->output_string(ST->cout, buff);
+			global.sys->cout->output_string(global.sys->cout, buff);
 			n = 0;
 		}
 		switch (str[1]) {
@@ -147,19 +141,24 @@ long vwprint(unsigned short* str, va_list args) {
 			case 'f':
 				res_len += print_double(va_arg(args, double), 7);
 				break;
+			case 'c':
+				res_len++;
+				short str__c[2] = {(char)va_arg(args, int), 0};
+				global.sys->cout->output_string(global.sys->cout, (str__c));
+				break;
 			case '%':
-				ST->cout->output_string(ST->cout, (short*)u"%");
+				global.sys->cout->output_string(global.sys->cout, (short*)u"%");
 				res_len++;
 				n++;
 				break;
 			default:
-				ST->cout->output_string(ST->cout, (short*)u"%");
+				global.sys->cout->output_string(global.sys->cout, (short*)u"%");
 				res_len++;
 				if (str[1]) {
 					res_len++;
 					int s = str[1];
 					s &= 0x0000ffff;
-					ST->cout->output_string(ST->cout, (short*)&s);
+					global.sys->cout->output_string(global.sys->cout, (short*)&s);
 					str--;
 				}
 		}
@@ -167,7 +166,7 @@ long vwprint(unsigned short* str, va_list args) {
 		c = *str;
 	}
 	if (n) {
-		ST->cout->output_string(ST->cout, buff);
+		global.sys->cout->output_string(global.sys->cout, buff);
 		n = 0;
 	}
 	return res_len;
@@ -180,7 +179,7 @@ long print_str(char* str) {
 	while (c) {
 		int s = c;
 		s &= 0x0000ffff;
-		ST->cout->output_string(ST->cout, (short*)&s);
+		global.sys->cout->output_string(global.sys->cout, (short*)&s);
 		res_len++;
 		c = *(++str);
 	}
@@ -194,7 +193,7 @@ long print_wstr(short* str) {
 	int c = *str;
 	while (c) {
 		c &= 0x0000ffff;
-		ST->cout->output_string(ST->cout, (short*)&c);
+		global.sys->cout->output_string(global.sys->cout, (short*)&c);
 		res_len++;
 		c = *(++str);
 	}
@@ -203,13 +202,13 @@ long print_wstr(short* str) {
 
 long print_long(long val) {
 	if (!val) {
-		ST->cout->output_string(ST->cout, (short*)u"0");
+		global.sys->cout->output_string(global.sys->cout, (short*)u"0");
 		return 1;
 	}
 	long len = 0;
 	if (val < 0) {
 		val = -val;
-		ST->cout->output_string(ST->cout, (short*)u"-");
+		global.sys->cout->output_string(global.sys->cout, (short*)u"-");
 		len++;
 	}
 
@@ -228,10 +227,10 @@ long print_long(long val) {
 		s = (rev % 10) + 0x30;
 		s &= 0x0000ffff;
 		rev /= 10;
-		ST->cout->output_string(ST->cout, (short*)&s);
+		global.sys->cout->output_string(global.sys->cout, (short*)&s);
 	}
 	for (char i = 0; i < zeros; i++) {
-		ST->cout->output_string(ST->cout, (short*)u"0");
+		global.sys->cout->output_string(global.sys->cout, (short*)u"0");
 	}
 	return len;
 }
@@ -241,7 +240,7 @@ long print_long(long val) {
  */
 long print_double(double val, char precision) {
 	if (!val) {
-		ST->cout->output_string(ST->cout, (short*)u"0");
+		global.sys->cout->output_string(global.sys->cout, (short*)u"0");
 		return 1;
 	}
 	long floor_val = (int)val;
@@ -258,7 +257,7 @@ long print_double(double val, char precision) {
 	}
 	// Decimal
 	res_len++;
-	ST->cout->output_string(ST->cout, (short*)u".");
+	global.sys->cout->output_string(global.sys->cout, (short*)u".");
 
 	while (precision--) {
 		diff *= 10;
@@ -266,13 +265,9 @@ long print_double(double val, char precision) {
 		diff -= digit;
 		int s = digit + 0x30;
 		s &= 0x0000ffff;
-		ST->cout->output_string(ST->cout, (short*)&s);
+		global.sys->cout->output_string(global.sys->cout, (short*)&s);
 		res_len++;
 	}
 
 	return res_len;
-}
-
-void shutdown() {
-	ST->runtime_services->reset_system(EFI_RESET_SHUTDOWN, 0, 0, NULL);
 }
