@@ -92,7 +92,7 @@ typedef struct _efi_block_io2_protocol_t {
 
 	efi_status              (*reset_blocks_ex) (
 		input _efi_block_io2_protocol_t         *This,
-		input bool                              ExtendedVerification);
+		input bool                              extended_verification);
 
 	efi_status              (*read_blocks_ex) (
 		input _efi_block_io2_protocol_t         *This,
@@ -675,10 +675,10 @@ typedef struct efi_graphics_output_protocol_t {
 /**
   Return the current video mode information.
 
-  @param  This       Protocol instance pointer.
-  @param  ModeNumber The mode number to return information on.
-  @param  SizeOfInfo A pointer to the size, in bytes, of the Info buffer.
-  @param  Info       A pointer to callee allocated buffer that returns information about ModeNumber.
+  @param  This           Protocol instance pointer.
+  @param  mode_number    The mode number to return information on.
+  @param  size_of_info   A pointer to the size, in bytes, of the Info buffer.
+  @param  Info           A pointer to callee allocated buffer that returns information about ModeNumber.
 
   @retval EFI_SUCCESS           Mode information returned.
   @retval EFI_BUFFER_TOO_SMALL  The Info buffer was too small.
@@ -697,7 +697,7 @@ typedef struct efi_graphics_output_protocol_t {
   Return the current video mode information.
 
   @param  This              Protocol instance pointer.
-  @param  ModeNumber        The mode number to be set.
+  @param  mode_number       The mode number to be set.
 
   @retval EFI_SUCCESS       Graphics mode was changed.
   @retval EFI_DEVICE_ERROR  The device had an error and could not complete the request.
@@ -710,13 +710,13 @@ typedef struct efi_graphics_output_protocol_t {
 
 /**
   @param  This         Protocol instance pointer.
-  @param  BltBuffer    Buffer containing data to blit into video buffer. This
+  @param  blt_buffer   Buffer containing data to blit into video buffer. This
                        buffer has a size of Width*Height*sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL)
-  @param  BltOperation Operation to perform on BlitBuffer and video memory
+  @param  blt_operation Operation to perform on BlitBuffer and video memory
   @param  SourceX      X coordinate of source for the BltBuffer.
   @param  SourceY      Y coordinate of source for the BltBuffer.
-  @param  DestinationX X coordinate of destination for the BltBuffer.
-  @param  DestinationY Y coordinate of destination for the BltBuffer.
+  @param  destinationX X coordinate of destination for the BltBuffer.
+  @param  destinationY Y coordinate of destination for the BltBuffer.
   @param  Width        Width of rectangle in BltBuffer in pixels.
   @param  Height       Hight of rectangle in BltBuffer in pixels.
   @param  Delta        OPTIONAL
@@ -738,7 +738,282 @@ typedef struct efi_graphics_output_protocol_t {
 		input  uint64                                   height,
 		input  uint64                                   delta         optional
 		);
-	efi_graphics_output_protocol_mode_t     *Mode;
+	efi_graphics_output_protocol_mode_t     *mode;
 } efi_graphics_output_protocol_t;
+
+
+/*
+ * EFI EDID Discovered Protocol
+ * UEFI Specification Version 2.5 Section 11.9
+ */
+#define EFI_EDID_DISCOVERED_PROTOCOL_GUID \
+    { 0x1C0C34F6, 0xD380, 0x41FA, { 0xA0, 0x49, 0x8a, 0xD0, 0x6C, 0x1A, 0x66, 0xAA} }
+
+typedef struct {
+    uint32   size_of_edid;
+    uint8   *edid;
+} efi_edid_discovered_protocol_t;
+
+/*
+ * EFI EDID Active Protocol
+ * UEFI Specification Version 2.5 Section 11.9
+ */
+#define EFI_EDID_ACTIVE_PROTOCOL_GUID \
+    { 0xBD8C1056, 0x9F36, 0x44EC, { 0x92, 0xA8, 0xA6, 0x33, 0x7F, 0x81, 0x79, 0x86} }
+
+typedef struct {
+    uint32   size_of_edid;
+    uint8   *edid;
+} efi_edid_active_protocol_t;
+
+/*
+ * EFI EDID Override Protocol
+ * UEFI Specification Version 2.5 Section 11.9
+ */
+#define EFI_EDID_OVERRIDE_PROTOCOL_GUID \
+    { 0x48ECB431, 0xFB72, 0x45C0, { 0xA9, 0x22, 0xF4, 0x58, 0xFE, 0x04, 0x0B, 0xD5} }
+
+typedef struct efi_edid_override_protocol_t {
+	efi_status (*get_edid) (
+		input struct efi_edid_override_protocol_t   *This,
+		input efi_handle_t                          *child_handle,
+		output  uint32                              *attributes,
+		input output  uint64                        *edid_size,
+		input output  uint8                         **edid);
+} efi_edid_override_protocol_t;
+
+typedef struct efi_service_binding_t {
+	efi_status (*create_child) (
+		input struct efi_service_binding_t  *This,
+		input efi_handle_t                  *child_handle);
+
+	efi_status (*destroy_child) (
+		input struct efi_service_binding_t  *This,
+		input efi_handle_t                  child_handle);
+} efi_service_binding_t;
+
+/*
+ * EFI Driver Binding Protocol
+ * UEFI Specification Version 2.5 Section 10.1
+ */
+#define EFI_DRIVER_BINDING_PROTOCOL_GUID \
+    { 0x18A031AB, 0xB443, 0x4D1A, { 0xA5, 0xC0, 0x0C, 0x09, 0x26, 0x1E, 0x9F, 0x71} }
+#define DRIVER_BINDING_PROTOCOL EFI_DRIVER_BINDING_PROTOCOL_GUID
+
+typedef struct efi_driver_binding_protocol_t {
+	efi_status                          (*supported) (
+		input   struct efi_driver_binding_protocol_t    *This,
+		input   efi_handle_t                            controller_handle,
+		input   efi_device_path_t                       *remaining_device_path optional);
+
+	efi_status                          (*start) (
+		input   struct efi_driver_binding_protocol_t    *This,
+		input   efi_handle_t                            controller_handle,
+		input   efi_device_path_t                       *remaining_device_path optional);
+
+	efi_status                          (*stop) (
+		input   struct efi_driver_binding_protocol_t    *This,
+		input   efi_handle_t                            controller_handle,
+		input   uint64                                  children_length,
+		input   efi_handle_t                            *child_handle_buffer optional);
+
+	uint32                              version;
+	efi_handle_t                        image_handle;
+	efi_handle_t                        driver_binding_handle;
+} efi_driver_binding_protocol_t;
+
+typedef efi_driver_binding_protocol_t efi_driver_binding_t;
+
+/*
+ * EFI Component Name 2 Protocol
+ * UEFI Specification Version 2.5 Section 10.5
+ */
+#define EFI_COMPONENT_NAME2_PROTOCOL_GUID \
+    {0x6A7A5CFF, 0xE8D9, 0x4F70, { 0xBA, 0xDA, 0x75, 0xAB, 0x30, 0x25, 0xCE, 0x14} }
+#define COMPONENT_NAME2_PROTOCOL EFI_COMPONENT_NAME2_PROTOCOL_GUID
+
+typedef struct efi_component_name2_protocol_t {
+	efi_status (*get_driver_name) (
+		input     struct efi_component_name2_protocol_t *This,
+		input     char                                  *language,
+		output    wchar                                 **driver_name);
+
+	efi_status (*get_controller_name) (
+		input     struct efi_component_name2_protocol_t *This,
+		input     efi_handle_t                          controller_handle,
+		input     efi_handle_t                          child_handle optional,
+		input     char                                  *language,
+		output    wchar                                 **controller_name);
+
+	char                                      *supported_languages;
+} efi_component_name2_protocol_t;
+
+typedef efi_component_name2_protocol_t efi_component_name2_t;
+
+/*
+ * EFI Loaded Image Protocol
+ * UEFI Specification Version 2.5 Section 8.1
+ */
+#define EFI_LOADED_IMAGE_PROTOCOL_GUID \
+    { 0x5B1B31A1, 0x9562, 0x11d2, {0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B} }
+#define LOADED_IMAGE_PROTOCOL EFI_LOADED_IMAGE_PROTOCOL_GUID
+
+#define EFI_LOADED_IMAGE_PROTOCOL_REVISION  0x1000
+#define EFI_IMAGE_INFORMATION_REVISION  EFI_LOADED_IMAGE_PROTOCOL_REVISION
+
+
+typedef struct {
+    uint32                          revision;
+    efi_handle_t                    parent_handle;
+    struct efi_system_table_t       *system_table;
+
+    // Source location of image
+    efi_handle_t                    device_handle;
+    efi_device_path_t               *file_path;
+    void                            *reserved;
+
+    // Images load options
+    uint32                          load_options_size;
+    void                            *load_options;
+
+    // Location of where image was loaded
+    void                            *image_base;
+    uint64                          image_size;
+    efi_memory_type_t               image_code_type;
+    efi_memory_type_t               image_data_type;
+
+    // If the driver image supports a dynamic unload request
+	efi_status                      (*unload) (
+		input efi_handle_t                  image_handle);
+} efi_loaded_image_protocol_t;
+
+typedef efi_loaded_image_protocol_t efi_loaded_image_t;
+
+#define EFI_LOADED_IMAGE_DEVICE_PATH_PROTOCOL_GUID \
+    {0xbc62157e, 0x3e33, 0x4fec, {0x99, 0x20, 0x2d, 0x3b, 0x36, 0xd7, 0x50, 0xdf} }
+
+/*
+ * Random Number Generator Protocol
+ * UEFI Specification Version 2.5 Section 35.5
+ */
+#define EFI_RNG_PROTOCOL_GUID                          \
+          { 0x3152bca5, 0xeade, 0x433d, {0x86, 0x2e, 0xc0, 0x1c, 0xdc, 0x29, 0x1f, 0x44} }
+
+typedef efi_guid_t efi_rng_algorithm_t;
+
+#define EFI_RNG_ALGORITHM_SP800_90_HASH_256_GUID       \
+     {0xa7af67cb, 0x603b, 0x4d42, {0xba, 0x21, 0x70, 0xbf, 0xb6, 0x29, 0x3f, 0x96} }
+
+#define EFI_RNG_ALGORITHM_SP800_90_HMAC_256_GUID       \
+     {0xc5149b43, 0xae85, 0x4f53, {0x99, 0x82, 0xb9, 0x43, 0x35, 0xd3, 0xa9, 0xe7} }
+
+#define EFI_RNG_ALGORITHM_SP800_90_CTR_256_GUID        \
+     {0x44f0de6e, 0x4d8c, 0x4045, {0xa8, 0xc7, 0x4d, 0xd1, 0x68, 0x85, 0x6b, 0x9e} }
+
+#define EFI_RNG_ALGORITHM_X9_31_3DES_GUID              \
+     {0x63c4785a, 0xca34, 0x4012, {0xa3, 0xc8, 0x0b, 0x6a, 0x32, 0x4f, 0x55, 0x46} }
+
+#define EFI_RNG_ALGORITHM_X9_31_AES_GUID               \
+     {0xacd03321, 0x777e, 0x4d3d, {0xb1, 0xc8, 0x20, 0xcf, 0xd8, 0x88, 0x20, 0xc9} }
+
+#define EFI_RNG_ALGORITHM_RAW                          \
+     {0xe43176d7, 0xb6e8, 0x4827, {0xb7, 0x84, 0x7f, 0xfd, 0xc4, 0xb6, 0x85, 0x61} }
+
+typedef struct efi_rng_protocol_t {
+	efi_status (*get_info) (
+		input      struct efi_rng_protocol_t  *This,
+		input output  uint64                  *rng_algorithm_list_size,
+		output     efi_rng_algorithm_t        *rng_algorithm_list);
+
+	efi_status (*get_rng) (
+		input      struct efi_rng_protocol_t  *This,
+		input      efi_rng_algorithm_t        *rng_algorithm,           optional
+		input      uint64                     rng_value_length,
+		output     uint8                      *rng_value);
+} efi_rng_protocol_t;
+
+// EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL
+
+#define EFI_PLATFORM_DRIVER_OVERRIDE_PROTOCOL_GUID          \
+          { 0x6b30c738, 0xa391, 0x11d4, {0x9a, 0x3b, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d} }
+
+
+typedef struct efi_platform_driver_override_protocol_t {
+	efi_status
+	(*get_driver) (
+		input      struct efi_platform_driver_override_protocol_t   *This,
+		input      efi_handle_t                                     controller_handle,
+		input output  efi_handle_t                                  *driver_image_handle);
+
+	efi_status
+	(*get_driver_path) (
+		input      struct efi_platform_driver_override_protocol_t   *This,
+		input      efi_handle_t                                     controller_handle,
+		input output  efi_device_path_t                             **driver_image_path);
+
+	efi_status
+	(*driver_loaded) (
+		input      struct efi_platform_driver_override_protocol_t   *This,
+		input      efi_handle_t                                     controller_handle,
+		input      efi_device_path_t                                *driver_image_path,
+		input      efi_handle_t                                     driver_image_handle);
+} efi_platform_driver_override_protocol_t;
+
+// EFI_BUS_SPECIFIC_DRIVER_OVERRIDE_PROTOCOL
+
+#define EFI_BUS_SPECIFIC_DRIVER_OVERRIDE_PROTOCOL_GUID          \
+          { 0x3bc1b285, 0x8a15, 0x4a82, {0xaa, 0xbf, 0x4d, 0x7d, 0x13, 0xfb, 0x32, 0x65} }
+
+
+typedef struct _EFI_BUS_SPECIFIC_DRIVER_OVERRIDE_PROTOCOL {
+	efi_status (*get_driver) (
+		input      struct efi_bus_specific_driver_override_protocol_t   *This,
+		input output  efi_handle_t                                      *driver_image_handle);
+} EFI_BUS_SPECIFIC_DRIVER_OVERRIDE_PROTOCOL;
+
+// EFI_DRIVER_FAMILY_OVERRIDE_PROTOCOL
+
+#define EFI_DRIVER_FAMILY_OVERRIDE_PROTOCOL_GUID          \
+          { 0xb1ee129e, 0xda36, 0x4181, {0x91, 0xf8, 0x04, 0xa4, 0x92, 0x37, 0x66, 0xa7} }
+
+
+typedef struct _EFI_DRIVER_FAMILY_OVERRIDE_PROTOCOL {
+	uint32 (*get_version) (
+		input struct efi_driver_family_override_protocol_t  *This);
+} EFI_DRIVER_FAMILY_OVERRIDE_PROTOCOL;
+
+// EFI_EBC_PROTOCOL
+
+#define EFI_EBC_INTERPRETER_PROTOCOL_GUID              \
+     {0x13ac6dd1, 0x73d0, 0x11d4, {0xb0, 0x6b, 0x00, 0xaa, 0x00, 0xbd, 0x6d, 0xe7} }
+
+#define EFI_EBC_PROTOCOL_GUID EFI_EBC_INTERPRETER_PROTOCOL_GUID
+
+typedef
+efi_status (*ebc_icache_flush_t) (
+	input efi_physical_addr_t       start,
+	input uint64                    length);
+
+typedef struct EFI_EBC_PROTOCOL_t {
+	efi_status (*create_thunk) (
+		input struct efi_ebc_protocol   *This,
+		input efi_handle_t              image_handle,
+		input void                      *ebc_entry_point,
+		output void                     **thunk);
+
+	efi_status (*unload_image) (
+		input struct efi_ebc_protocol   *This,
+		input efi_handle_t              image_handle);
+
+
+	efi_status (*register_icache_flush) (
+		input struct efi_ebc_protocol   *This,
+		input ebc_icache_flush_t        flush);
+
+	efi_status (*get_version) (
+		input struct efi_ebc_protocol   *This,
+		input output uint64             *version);
+
+} efi_ebc_protocol_t;
 
 #endif // !EFI_ELF_PROT
