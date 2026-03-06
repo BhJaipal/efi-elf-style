@@ -8,52 +8,6 @@
     { 0x387477c2, 0x69c7, 0x11d2, {0x8e, 0x39, 0x0, 0xa0, 0xc9, 0x69, 0x72, 0x3b} }
 #define SIMPLE_TEXT_output_PROTOCOL EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID
 
-struct simple_text_output_interface_t;
-
-typedef
-efi_status
-(*efi_text_reset_t) (
-    input struct simple_text_output_interface_t *This,
-    input bool                                  extended_verification
-    );
-
-typedef
-efi_status
-(*efi_text_output_string_t) (
-    input struct simple_text_output_interface_t *This,
-    input int16                                 *string
-    );
-
-typedef
-efi_status
-(*efi_text_test_string_t) (
-    input struct simple_text_output_interface_t *This,
-    input int16                                 *string
-    );
-
-typedef
-efi_status
-(*efi_text_query_mode_t) (
-    input struct simple_text_output_interface_t *This,
-    input uint64                                mode_number,
-    output uint64                               *columns,
-    output uint64                               *rows
-    );
-
-typedef
-efi_status
-(*efi_text_set_mode_t) (
-    input struct simple_text_output_interface_t *This,
-    input uint64                                mode_number
-    );
-
-typedef
-efi_status
-(*efi_text_set_attribute_t) (
-    input struct simple_text_output_interface_t *This,
-    input uint64                                attribute
-    );
-
 #define EFI_BLACK   0x00
 #define EFI_BLUE    0x01
 #define EFI_GREEN   0x02
@@ -84,27 +38,6 @@ efi_status
 #define EFI_BACKGROUND_LIGHTGRAY    (EFI_BACKGROUND_BLUE | EFI_BACKGROUND_GREEN | EFI_BACKGROUND_RED)
 
 
-typedef
-efi_status
-(*efi_text_clear_screen_t) (
-    input struct simple_text_output_interface_t     *This
-    );
-
-typedef
-efi_status
-(*efi_text_set_cursor_position_t) (
-    input struct simple_text_output_interface_t     *This,
-    input uint64                                    column,
-    input uint64                                    row
-    );
-
-typedef
-efi_status
-(*efi_text_enable_cursor_t) (
-    input struct simple_text_output_interface_t     *This,
-    input bool                                      enable
-    );
-
 typedef struct {
     int32   max_mode;
     // current settings
@@ -115,19 +48,45 @@ typedef struct {
     bool    cursor_visible;
 } simple_text_output_mode_t;
 
+
 typedef struct simple_text_output_interface_t {
-    efi_text_reset_t            reset;
+	efi_status (*reset) (
+		input struct simple_text_output_interface_t *This,
+		input bool                                  extended_verification);
 
-    efi_text_output_string_t    output_string;
-    efi_text_test_string_t      test_string;
+	efi_status (*output_string) (
+		input struct simple_text_output_interface_t *This,
+		input int16                                 *string);
 
-    efi_text_query_mode_t       query_mode;
-    efi_text_set_mode_t         set_mode;
-    efi_text_set_attribute_t    set_attribute;
+	efi_status (*test_string) (
+		input struct simple_text_output_interface_t *This,
+		input int16                                 *string);
 
-    efi_text_clear_screen_t           clear_screen;
-    efi_text_set_cursor_position_t    set_cursor_position;
-    efi_text_enable_cursor_t          enable_cursor;
+	efi_status (*query_mode) (
+		input struct simple_text_output_interface_t *This,
+		input uint64                                mode_number,
+		output uint64                               *columns,
+		output uint64                               *rows);
+
+	efi_status (*set_mode) (
+		input struct simple_text_output_interface_t *This,
+		input uint64                                mode_number);
+
+	efi_status (*set_attribute) (
+		input struct simple_text_output_interface_t *This,
+		input uint64                                attribute);
+
+    efi_status (*clear_screen) (
+		input struct simple_text_output_interface_t     *This);
+
+	efi_status (*set_cursor_position) (
+		input struct simple_text_output_interface_t     *This,
+		input uint64                                    column,
+		input uint64                                    row);
+
+	efi_status (*enable_cursor) (
+		input struct simple_text_output_interface_t     *This,
+		input bool                                      enable);
 
     // Current mode
     simple_text_output_mode_t         *mode;
@@ -135,9 +94,7 @@ typedef struct simple_text_output_interface_t {
 
 typedef simple_text_output_interface_t efi_simple_text_out_protocol_t;
 
-//
 // Define's for required EFI Unicode Box Draw character
-//
 
 #define BOXDRAW_HORIZONTAL                  0x2500
 #define BOXDRAW_VERTICAL                    0x2502
@@ -189,44 +146,33 @@ typedef simple_text_output_interface_t efi_simple_text_out_protocol_t;
 #define BOXDRAW_VERTICAL_DOUBLE_HORIZONTAL  0x256b
 #define BOXDRAW_DOUBLE_VERTICAL_HORIZONTAL  0x256c
 
-//
 // EFI Required Block Elements Code Chart
-//
 
 #define BLOCKELEMENT_FULL_BLOCK             0x2588
 #define BLOCKELEMENT_LIGHT_SHADE            0x2591
-//
-// EFI Required Geometric Shapes Code Chart
-//
 
+// EFI Required Geometric Shapes Code Chart
 #define GEOMETRICSHAPE_UP_TRIANGLE           0x25b2
 #define GEOMETRICSHAPE_RIGHT_TRIANGLE        0x25ba
 #define GEOMETRICSHAPE_DOWN_TRIANGLE         0x25bc
 #define GEOMETRICSHAPE_LEFT_TRIANGLE         0x25c4
 
-//
 // EFI Required Arrow shapes
-//
-
 #define ARROW_UP                            0x2191
 #define ARROW_DOWN                          0x2193
 
-//
 // Text input protocol
-//
 
 #define EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID \
     { 0x387477c1, 0x69c7, 0x11d2, {0x8e, 0x39, 0x0, 0xa0, 0xc9, 0x69, 0x72, 0x3b} }
 #define SIMPLE_TEXT_INPUT_PROTOCOL EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID
 
 typedef struct {
-    uint16                              scan_code;
-    int16                              unicode_char;
+    uint16                          scan_code;
+    int16                           unicode_char;
 } efi_input_key_t;
 
-//
 // Baseline unicode control chars
-//
 
 #define CHAR_NULL                       0x0000
 #define CHAR_BACKSPACE                  0x0008
@@ -234,9 +180,7 @@ typedef struct {
 #define CHAR_LINEFEED                   0x000A
 #define CHAR_CARRIAGE_RETURN            0x000D
 
-//
 // Scan codes for base line keys
-//
 
 #define SCAN_NULL                       0x0000
 #define SCAN_UP                         0x0001
@@ -263,25 +207,15 @@ typedef struct {
 #define SCAN_F12                        0x0016
 #define SCAN_ESC                        0x0017
 
-struct simple_input_interface_t;
-
-typedef
-efi_status
-(*efi_input_reset_t) (
-    input struct simple_input_interface_t   *This,
-    input bool                          extended_verification
-    );
-
-typedef
-efi_status
-(*efi_input_read_key_t) (
-    input struct simple_input_interface_t   *This,
-    output efi_input_key_t                   *key
-    );
-
 typedef struct simple_input_interface_t {
-    efi_input_reset_t       reset;
-    efi_input_read_key_t    read_key_stroke;
+	efi_status (*reset) (
+		input struct simple_input_interface_t   *This,
+		input bool                              extended_verification);
+
+	efi_status (*read_key_stroke) (
+		input struct simple_input_interface_t   *This,
+		output efi_input_key_t                   *key);
+
     efi_event_t             wait_for_key;
 } simple_input_interface_t;
 

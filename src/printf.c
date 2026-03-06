@@ -2,30 +2,45 @@
 
 #define VA __va_list_tag*
 
-long print_str(char* str);
-long print_wstr(short* str);
-long print_long(long val);
+long print_str(char* str, simple_text_output_interface_t *out);
+long print_wstr(short* str, simple_text_output_interface_t *out);
+long print_long(long val, simple_text_output_interface_t *out);
 /*
  * @precision: float 7 and double 15 precision
  */
-long print_double(double val, char precision);
+long print_double(double val, char precision, simple_text_output_interface_t *out);
 
 long printf(const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
-	long out = vprint((unsigned char*)fmt, args);
+	long out = vprint((unsigned char*)fmt, args, global.sys->cout);
 	va_end(args);
 	return out;
 }
 long wprintf(unsigned short *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
-	long out = vwprint(fmt, args);
+	long out = vwprint(fmt, args, global.sys->cout);
 	va_end(args);
 	return out;
 }
 
-long vprint(unsigned char* str, va_list args) {
+long errorf(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	long out = vprint((unsigned char*)fmt, args, global.sys->stderr);
+	va_end(args);
+	return out;
+}
+long werrorf(unsigned short *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	long out = vwprint(fmt, args, global.sys->stderr);
+	va_end(args);
+	return out;
+}
+
+long vprint(unsigned char* str, va_list args, simple_text_output_interface_t *out) {
 	short buff[256] = {0};
 	long res_len = 0;
 	unsigned char n = 0;
@@ -34,7 +49,7 @@ long vprint(unsigned char* str, va_list args) {
 	while (c) {
 		if (c != '%') {
 			if (n == 255) {
-				global.sys->cout->output_string(global.sys->cout, buff);
+				out->output_string(out, buff);
 				n = 0;
 			}
 			buff[n++] = c;
@@ -45,46 +60,46 @@ long vprint(unsigned char* str, va_list args) {
 			continue;
 		}
 		if (n) {
-			global.sys->cout->output_string(global.sys->cout, buff);
+			out->output_string(out, buff);
 			n = 0;
 		}
 		switch (str[1]) {
 			case 'l':
 				if (str[2] == 's') {
-					res_len += print_wstr(va_arg(args, short*));
+					res_len += print_wstr(va_arg(args, short*), out);
 				} else if (str[2] == 'd') {
-					res_len += print_long(va_arg(args, long));
+					res_len += print_long(va_arg(args, long), out);
 				} else if (str[2] == 'f') {
-					res_len += print_double(va_arg(args, double), 15);
+					res_len += print_double(va_arg(args, double), 15, out);
 				}
 				str += 1;
 				break;
 			case 's':
-				res_len += print_str(va_arg(args, char*));
+				res_len += print_str(va_arg(args, char*), out);
 				break;
 			case 'f':
-				res_len += print_double(va_arg(args, double), 7);
+				res_len += print_double(va_arg(args, double), 7, out);
 				break;
 			case 'c':
 				res_len++;
 				short str__c[2] = {(char)va_arg(args, int), 0};
-				global.sys->cout->output_string(global.sys->cout, (str__c));
+				out->output_string(out, str__c);
 				break;
 			case 'd':
-				res_len += print_long(va_arg(args, long));
+				res_len += print_long(va_arg(args, long), out);
 				break;
 			case '%':
-				global.sys->cout->output_string(global.sys->cout, (short*)u"%");
+				out->output_string(out, (short*)u"%");
 				n++;
 				res_len++;
 				break;
 			default:
-				global.sys->cout->output_string(global.sys->cout, (short*)u"%");
+				out->output_string(out, (short*)u"%");
 				res_len++;
 				if (str[1]) {
 					int s = str[1];
 					s &= 0x0000ffff;
-					global.sys->cout->output_string(global.sys->cout, (short*)&s);
+					out->output_string(out, (short*)&s);
 					str--;
 					res_len++;
 				}
@@ -93,12 +108,12 @@ long vprint(unsigned char* str, va_list args) {
 		c = *str;
 	}
 	if (n) {
-		global.sys->cout->output_string(global.sys->cout, buff);
+		out->output_string(out, buff);
 		n = 0;
 	}
 	return res_len;
 }
-long vwprint(unsigned short* str, va_list args) {
+long vwprint(unsigned short* str, va_list args, simple_text_output_interface_t *out) {
 	short buff[256] = {0};
 	long res_len = 0;
 	unsigned char n = 0;
@@ -107,7 +122,7 @@ long vwprint(unsigned short* str, va_list args) {
 	while (c) {
 		if (c != '%') {
 			if (n == 255) {
-				global.sys->cout->output_string(global.sys->cout, buff);
+				out->output_string(out, buff);
 				n = 0;
 			}
 			buff[n++] = c;
@@ -118,47 +133,47 @@ long vwprint(unsigned short* str, va_list args) {
 			continue;
 		}
 		if (n) {
-			global.sys->cout->output_string(global.sys->cout, buff);
+			out->output_string(out, buff);
 			n = 0;
 		}
 		switch (str[1]) {
 			case 'l':
 				if (str[2] == 's') {
-					res_len += print_wstr(va_arg(args, short*));
+					res_len += print_wstr(va_arg(args, short*), out);
 				} else if (str[2] == 'd') {
-					res_len += print_long(va_arg(args, long));
+					res_len += print_long(va_arg(args, long), out);
 				} else if (str[2] == 'f') {
-					res_len += print_double(va_arg(args, double), 15);
+					res_len += print_double(va_arg(args, double), 15, out);
 				}
 				str += 1;
 				break;
 			case 's':
-				res_len += print_str(va_arg(args, char*));
+				res_len += print_str(va_arg(args, char*), out);
 				break;
 			case 'd':
-				res_len += print_long(va_arg(args, long));
+				res_len += print_long(va_arg(args, long), out);
 				break;
 			case 'f':
-				res_len += print_double(va_arg(args, double), 7);
+				res_len += print_double(va_arg(args, double), 7, out);
 				break;
 			case 'c':
 				res_len++;
 				short str__c[2] = {(char)va_arg(args, int), 0};
-				global.sys->cout->output_string(global.sys->cout, (str__c));
+				out->output_string(out, (str__c));
 				break;
 			case '%':
-				global.sys->cout->output_string(global.sys->cout, (short*)u"%");
+				out->output_string(out, (short*)u"%");
 				res_len++;
 				n++;
 				break;
 			default:
-				global.sys->cout->output_string(global.sys->cout, (short*)u"%");
+				out->output_string(out, (short*)u"%");
 				res_len++;
 				if (str[1]) {
 					res_len++;
 					int s = str[1];
 					s &= 0x0000ffff;
-					global.sys->cout->output_string(global.sys->cout, (short*)&s);
+					out->output_string(out, (short*)&s);
 					str--;
 				}
 		}
@@ -166,20 +181,20 @@ long vwprint(unsigned short* str, va_list args) {
 		c = *str;
 	}
 	if (n) {
-		global.sys->cout->output_string(global.sys->cout, buff);
+		out->output_string(out, buff);
 		n = 0;
 	}
 	return res_len;
 }
 
-long print_str(char* str) {
+long print_str(char* str, simple_text_output_interface_t *out) {
 	long res_len = 0;
 
 	char c = *str;
 	while (c) {
 		int s = c;
 		s &= 0x0000ffff;
-		global.sys->cout->output_string(global.sys->cout, (short*)&s);
+		out->output_string(out, (short*)&s);
 		res_len++;
 		c = *(++str);
 	}
@@ -187,28 +202,28 @@ long print_str(char* str) {
 }
 
 
-long print_wstr(short* str) {
+long print_wstr(short* str, simple_text_output_interface_t *out) {
 	long res_len = 0;
 
 	int c = *str;
 	while (c) {
 		c &= 0x0000ffff;
-		global.sys->cout->output_string(global.sys->cout, (short*)&c);
+		out->output_string(out, (short*)&c);
 		res_len++;
 		c = *(++str);
 	}
 	return res_len;
 }
 
-long print_long(long val) {
+long print_long(long val, simple_text_output_interface_t *out) {
 	if (!val) {
-		global.sys->cout->output_string(global.sys->cout, (short*)u"0");
+		out->output_string(out, (short*)u"0");
 		return 1;
 	}
 	long len = 0;
 	if (val < 0) {
 		val = -val;
-		global.sys->cout->output_string(global.sys->cout, (short*)u"-");
+		out->output_string(out, (short*)u"-");
 		len++;
 	}
 
@@ -227,10 +242,10 @@ long print_long(long val) {
 		s = (rev % 10) + 0x30;
 		s &= 0x0000ffff;
 		rev /= 10;
-		global.sys->cout->output_string(global.sys->cout, (short*)&s);
+		out->output_string(out, (short*)&s);
 	}
 	for (char i = 0; i < zeros; i++) {
-		global.sys->cout->output_string(global.sys->cout, (short*)u"0");
+		out->output_string(out, (short*)u"0");
 	}
 	return len;
 }
@@ -238,13 +253,13 @@ long print_long(long val) {
 /*
  * @precision: float 7 and double 15 precision
  */
-long print_double(double val, char precision) {
+long print_double(double val, char precision, simple_text_output_interface_t *out) {
 	if (!val) {
-		global.sys->cout->output_string(global.sys->cout, (short*)u"0");
+		out->output_string(out, (short*)u"0");
 		return 1;
 	}
 	long floor_val = (int)val;
-	long res_len = print_long(floor_val);
+	long res_len = print_long(floor_val, out);
 	if (val < 0) {
 		val = -val;
 		floor_val = (int)val;
@@ -257,7 +272,7 @@ long print_double(double val, char precision) {
 	}
 	// Decimal
 	res_len++;
-	global.sys->cout->output_string(global.sys->cout, (short*)u".");
+	out->output_string(out, (short*)u".");
 
 	while (precision--) {
 		diff *= 10;
@@ -265,7 +280,7 @@ long print_double(double val, char precision) {
 		diff -= digit;
 		int s = digit + 0x30;
 		s &= 0x0000ffff;
-		global.sys->cout->output_string(global.sys->cout, (short*)&s);
+		out->output_string(out, (short*)&s);
 		res_len++;
 	}
 

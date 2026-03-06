@@ -2,4 +2,3 @@ CompileFlags:
   Add:
     - -I/usr/include/efi
     - -I../include
-    - -x

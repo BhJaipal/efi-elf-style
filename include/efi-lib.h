@@ -34,10 +34,14 @@ extern efi_guid_t efi_global_variable;
 extern uint64     efi_debug;
 extern void initialize_lib(efi_handle_t ImageHandle, efi_system_table_t *SystemTable);
 extern void efi_debug_variable();
-extern long vprint(unsigned char*, va_list args);
+
 extern long printf(const char *fmt, ...);
 
-extern long vwprint(unsigned short*, va_list args);
+extern long errorf(const char *fmt, ...);
+extern long werrorf(unsigned short *fmt, ...);
+
+extern long vprint(unsigned char*, va_list args, simple_text_output_interface_t *out);
+extern long vwprint(unsigned short*, va_list args, simple_text_output_interface_t *out);
 
 extern long wprintf(unsigned short *fmt, ...);
 
