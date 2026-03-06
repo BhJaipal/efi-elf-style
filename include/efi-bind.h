@@ -42,7 +42,7 @@
 // Simpler and better, stdcall wrapper implemented with using some brain
 #undef uefi_call_wrapper
 #define uefi_call_wrapper(func,va_num,...)              \
-	cast64_efi_call##va_num(func, __VA_ARGS__);
+	cast64_efi_call##va_num(func, __VA_ARGS__)
 
 
 /* Prototypes of EFI cdecl -> stdcall trampolines */

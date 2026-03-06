@@ -214,7 +214,7 @@ typedef struct simple_input_interface_t {
 
 	efi_status (*read_key_stroke) (
 		input struct simple_input_interface_t   *This,
-		output efi_input_key_t                   *key);
+		output efi_input_key_t                  *key);
 
     efi_event_t             wait_for_key;
 } simple_input_interface_t;

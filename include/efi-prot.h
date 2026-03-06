@@ -49,6 +49,7 @@ typedef struct {
 	uint32              optimal_transfer_length_granularity;
 } efi_block_io_media_t;
 
+typedef struct efi_block_io_protocol_t efi_block_io_protocol_t;
 typedef struct efi_block_io_protocol_t {
 	uint64                  revision;
 	efi_block_io_media_t    *media;
@@ -87,15 +88,16 @@ typedef struct {
 } efi_block_io2_token_t;
 
 
-typedef struct _efi_block_io2_protocol_t {
+typedef struct efi_block_io2_protocol_t efi_block_io2_protocol_t;
+typedef struct efi_block_io2_protocol_t {
 	efi_block_io_media_t    *media;
 
 	efi_status              (*reset_blocks_ex) (
-		input _efi_block_io2_protocol_t         *This,
+		input efi_block_io2_protocol_t         *This,
 		input bool                              extended_verification);
 
 	efi_status              (*read_blocks_ex) (
-		input _efi_block_io2_protocol_t         *This,
+		input efi_block_io2_protocol_t         *This,
 		input uint32                            media_id,
 		input efi_lba_t                         lba,
 		input output efi_block_io2_token_t      *token,
@@ -103,7 +105,7 @@ typedef struct _efi_block_io2_protocol_t {
 		output void                             *buffer);
 
 	efi_status              (*write_blocks_ex) (
-		input _efi_block_io2_protocol_t         *This,
+		input efi_block_io2_protocol_t         *This,
 		input uint32                            media_id,
 		input efi_lba_t                         lba,
 		input output efi_block_io2_token_t      *token,
@@ -111,7 +113,7 @@ typedef struct _efi_block_io2_protocol_t {
 		input void                              *buffer);
 
 	efi_status              (*flush_blocks_ex) (
-		input _efi_block_io2_protocol_t         *This,
+		input efi_block_io2_protocol_t         *This,
 		input output efi_block_io2_token_t      *token
 		);
 } efi_block_io2_protocol_t;
@@ -125,6 +127,7 @@ typedef struct _efi_block_io2_protocol_t {
 #define EFI_DISK_IO_PROTOCOL_REVISION  0x00010000
 #define EFI_DISK_IO_INTERFACE_REVISION EFI_DISK_IO_PROTOCOL_REVISION
 
+typedef struct efi_disk_io_protocol_t efi_disk_io_protocol_t;
 typedef struct efi_disk_io_protocol_t {
 	uint64              revision;
 
@@ -194,6 +197,7 @@ typedef struct efi_disk_io2_protocol_t {
 #define EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_REVISION  0x00010000
 #define EFI_FILE_IO_INTERFACE_REVISION EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_REVISION
 
+struct _efi_file_handle_t;
 typedef struct efi_simple_file_system_protocol_t {
 	uint64                  revision;
 
@@ -397,6 +401,7 @@ typedef enum {
 #define EFI_PCI_ADDRESS(_bus,_dev,_func) \
     ( (uint64) ( (((uint32)_bus) << 24) + (((uint64)_dev) << 16) + (((uint64)_func) << 8) ) )
 
+struct efi_device_io_protocol_t;
 
 typedef struct {
     efi_status                      (*read) (
@@ -589,7 +594,6 @@ typedef efi_unicode_collation_protocol_t efi_unicode_collation_interface_t;
 /* Graphics output protocol */
 #define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID \
    { 0x9042a9de, 0x23dc, 0x4a38, {0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a } }
-typedef struct _EFI_GRAPHICS_OUTPUT_PROTOCOL EFI_GRAPHICS_OUTPUT_PROTOCOL;
 
 typedef struct {
   uint32            red_mask;
@@ -671,6 +675,7 @@ typedef struct {
 	uint64                                  frame_buffer_size;
 } efi_graphics_output_protocol_mode_t;
 
+typedef struct efi_graphics_output_protocol_t efi_graphics_output_protocol_t;
 typedef struct efi_graphics_output_protocol_t {
 /**
   Return the current video mode information.
@@ -965,11 +970,11 @@ typedef struct efi_platform_driver_override_protocol_t {
           { 0x3bc1b285, 0x8a15, 0x4a82, {0xaa, 0xbf, 0x4d, 0x7d, 0x13, 0xfb, 0x32, 0x65} }
 
 
-typedef struct _EFI_BUS_SPECIFIC_DRIVER_OVERRIDE_PROTOCOL {
+typedef struct efi_bus_specific_driver_override_protocol_t {
 	efi_status (*get_driver) (
 		input      struct efi_bus_specific_driver_override_protocol_t   *This,
 		input output  efi_handle_t                                      *driver_image_handle);
-} EFI_BUS_SPECIFIC_DRIVER_OVERRIDE_PROTOCOL;
+} efi_bus_specific_driver_override_protocol_t;
 
 // EFI_DRIVER_FAMILY_OVERRIDE_PROTOCOL
 
@@ -977,10 +982,10 @@ typedef struct _EFI_BUS_SPECIFIC_DRIVER_OVERRIDE_PROTOCOL {
           { 0xb1ee129e, 0xda36, 0x4181, {0x91, 0xf8, 0x04, 0xa4, 0x92, 0x37, 0x66, 0xa7} }
 
 
-typedef struct _EFI_DRIVER_FAMILY_OVERRIDE_PROTOCOL {
+typedef struct efi_driver_family_override_protocol_t {
 	uint32 (*get_version) (
 		input struct efi_driver_family_override_protocol_t  *This);
-} EFI_DRIVER_FAMILY_OVERRIDE_PROTOCOL;
+} efi_driver_family_override_protocol_t;
 
 // EFI_EBC_PROTOCOL
 
@@ -994,24 +999,24 @@ efi_status (*ebc_icache_flush_t) (
 	input efi_physical_addr_t       start,
 	input uint64                    length);
 
-typedef struct EFI_EBC_PROTOCOL_t {
+typedef struct efi_ebc_protocol_t {
 	efi_status (*create_thunk) (
-		input struct efi_ebc_protocol   *This,
+		input struct efi_ebc_protocol_t *This,
 		input efi_handle_t              image_handle,
 		input void                      *ebc_entry_point,
 		output void                     **thunk);
 
 	efi_status (*unload_image) (
-		input struct efi_ebc_protocol   *This,
+		input struct efi_ebc_protocol_t *This,
 		input efi_handle_t              image_handle);
 
 
 	efi_status (*register_icache_flush) (
-		input struct efi_ebc_protocol   *This,
+		input struct efi_ebc_protocol_t *This,
 		input ebc_icache_flush_t        flush);
 
 	efi_status (*get_version) (
-		input struct efi_ebc_protocol   *This,
+		input struct efi_ebc_protocol_t *This,
 		input output uint64             *version);
 
 } efi_ebc_protocol_t;
