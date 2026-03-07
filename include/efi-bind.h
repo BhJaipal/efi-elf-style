@@ -22,11 +22,6 @@
                     alias ("InitializeDriver")));
 
 
-#define EFIERR(a)           (0x8000000000000000 | a)
-#define EFI_ERROR_MASK      0x8000000000000000
-#define EFIERR_OEM(a)       (0xc000000000000000 | a)      
-
-
 #define BAD_POINTER         0xFBFBFBFBFBFBFBFB
 #define MAX_ADDRESS         0xFFFFFFFFFFFFFFFF
 #define BREAKPOINT()        while (true);    // Make it hang on Bios[Dbg]32

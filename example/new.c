@@ -1,14 +1,10 @@
-#include "efi-api.h"
-#include "efi-bind.h"
-#include "efi-con.h"
-#include "types.h"
 #include <efi-string.h>
 #include <efi-err.h>
 #include <efi-lib.h>
 #include <efi-prot.h>
 #include <efi-ser.h>
 
-#define KERNEL_EXECUTABLE_PATH L"\\kernel.elf"
+#define KERNEL_EXECUTABLE_PATH u"\\kernel.elf"
 
 typedef struct s_boot_video_info {
 	void    *framebuffer_pointer;
@@ -17,8 +13,6 @@ typedef struct s_boot_video_info {
 	uint32  pixels_per_scanline;
 } Kernel_Boot_Video_Mode_Info;
 
-efi_guid_t gEfiSerialIoProtocolGuid = EFI_SERIAL_IO_PROTOCOL_GUID;
-efi_guid_t gEfiGraphicsOutputProtocolGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
 /**
  * @brief Kernel boot info struct.
  * Contains information passed to the kernel at boot time.
@@ -35,22 +29,58 @@ typedef struct s_boot_info {
 	Kernel_Boot_Video_Mode_Info    video_mode_info;
 } Kernel_Boot_Info;
 
-typedef struct s_uefi_graphics_service {
-	efi_handle_t* handle_buffer;
-	uint64 handle_count;
-} Uefi_Graphics_Service;
-void init_Serial_service(efi_serial_io_protocol_t **serial);
-void init_graphics_out_Service(Uefi_Graphics_Service *graphics_service);
+efi_status load_kernel_image(input efi_file_t* const root_file_system,
+	input wuchar* kernel_image_filename,
+	output efi_virtual_addr_t* kernel_entry_point) {
+	efi_file_t *kernel_img = NULL;
+	efi_status s = root_file_system->open(root_file_system, &kernel_img, (wchar*)kernel_image_filename, EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY);
 
-__attribute__((ms_abi))
+	return s;
+}
+
 efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 	system_table->cout->set_attribute(system_table->cout, EFI_TEXT_ATTR(EFI_YELLOW, EFI_GREEN));
 	system_table->cout->clear_screen (system_table->cout);
 	initialize_lib(img_handle, system_table);
-	long x = printf("Hello %s %d %f %d\r\n", "world", 73, -2.34, 0.0);
-	printf("Bytes written to screen: %d\r\nPress:\r\n    Qq to exit\r\n    Kk to open boot menu\r\n", x);
+
+
+	efi_guid_t gEfiSimpleFileSystemProtocolGuid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
+	uint64 fs_handle_sz = 0;
+	efi_handle_t *fs_handles = NULL;
+
+	if (EFI_ERROR(global.boot->locate_handle_buffer(BY_PROTOCOL, &gEfiSimpleFileSystemProtocolGuid, NULL, &fs_handle_sz, &fs_handles))) {
+		printf("Can't load fs\r\n");
+	} else {
+		printf("Loaded fs, %d handles\r\n", fs_handle_sz);
+	}
+
+	efi_simple_file_system_protocol_t *fs_proto = NULL;
+	if (EFI_ERROR(global.boot->locate_protocol(&gEfiSimpleFileSystemProtocolGuid, NULL, (void**)&fs_proto))) {
+		printf("FS protocol error\r\n");
+	} else {
+		printf("FS protocol loaded\r\n");
+	}
+
+	efi_file_t *root_fs = NULL;
+	efi_physical_addr_t kernel_entry_point = 0;
+	efi_memory_descriptor_t *mmap_desc = NULL;
+	void (*kernel_entry)(Kernel_Boot_Info* boot_info);
+	Kernel_Boot_Info boot_info = {0};
+
+	if (EFI_ERROR(fs_proto->open_volume(fs_proto, &root_fs))) {
+		printf("Can't load rootFS\r\n");
+	} else {
+		printf("RootFS loaded\r\n");
+	}
+
+	if (EFI_ERROR(load_kernel_image(root_fs, KERNEL_EXECUTABLE_PATH, &kernel_entry_point))) {
+		printf("Can't find kernel\r\n");
+	} else {
+		printf("Loaded kernel\r\n");
+	}
 
 	efi_input_key_t key;
+	printf("\nPress:\r\n    [Qq]: exit\r\n    [Kk]: boot menu\r\n");
 	while (true) {
 		if (!system_table->cin->read_key_stroke(system_table->cin, &key)) {
 			printf("Current input: %c\r", key.unicode_char);
@@ -62,43 +92,6 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 		}
 		asm("hlt");
 	}
-
-	Uefi_Graphics_Service graphics_out_proto;
-	efi_file_t *root_fs = NULL;
-	efi_simple_file_system_protocol_t *fs_service = NULL;
-	efi_serial_io_protocol_t *serial_service = NULL;
-
-	efi_physical_addr_t kernel_entry_point = 0;
-	efi_memory_descriptor_t *mmap_desc = NULL;
-	void (*kernel_entry)(Kernel_Boot_Info* boot_info);
-	Kernel_Boot_Info boot_info = {0};
-
-	uefi_call_wrapper(global.boot->set_watchdog_timer, 4, 0, 0, 0, NULL);
-	uefi_call_wrapper(global.sys->cin->reset, 2, global.sys->cin, 0);
-	init_Serial_service(&serial_service);
-	init_graphics_out_Service(&graphics_out_proto);
-
 	return EFI_SUCCESS;
 }
 
-efi_status configure_serial_protocol(input efi_serial_io_protocol_t* const protocol) {
-	return uefi_call_wrapper(protocol->set_attributes, 7,
-		protocol, 0, 0, 0, 0, 0, DEFAULT_STOP_BITS);
-}
-
-void init_Serial_service(efi_serial_io_protocol_t **serial) {
-	if (uefi_call_wrapper(global.boot->locate_protocol, 3, &gEfiSerialIoProtocolGuid, NULL, serial)) {
-		printf("Init serial service Error\r\n");
-	}
-	if (configure_serial_protocol(*serial)) {
-		printf("Config serial service Error\r\n");
-	}
-}
-
-void init_graphics_out_Service(Uefi_Graphics_Service *graphics_service) {
-	if (uefi_call_wrapper(global.boot->locate_handle_buffer, 5,
-		BY_PROTOCOL, &gEfiGraphicsOutputProtocolGuid, NULL,
-		&graphics_service->handle_count, &graphics_service->handle_buffer)) {
-		printf("Graphics service Error\r\n");
-	}
-}

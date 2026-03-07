@@ -1,8 +1,14 @@
 #ifndef EFI_ELF_TYPES
 #define EFI_ELF_TYPES
 
+#ifdef WIN32
+typedef unsigned long long  uint64;
+typedef          long long  int64;
+#else
 typedef unsigned long       uint64;
 typedef long                int64;
+#endif /* ifdef WIN32 */
+
 typedef unsigned int        uint32;
 typedef int                 int32;
 typedef unsigned short      uint16;

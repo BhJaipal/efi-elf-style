@@ -2,6 +2,7 @@
 #define EFI_ELF_EFI_LIB
 
 #include "efi-api.h"
+#include "types.h"
 
 #ifndef va_list
 typedef __builtin_va_list va_list;
@@ -35,19 +36,19 @@ extern uint64     efi_debug;
 extern void initialize_lib(efi_handle_t ImageHandle, efi_system_table_t *SystemTable);
 extern void efi_debug_variable();
 
-extern long printf(const char *fmt, ...);
+extern uint64 printf(const char *fmt, ...);
 
-extern long errorf(const char *fmt, ...);
-extern long werrorf(unsigned short *fmt, ...);
+extern uint64 errorf(const char *fmt, ...);
+extern uint64 werrorf(unsigned short *fmt, ...);
 
-extern long vprint(unsigned char*, va_list args, simple_text_output_interface_t *out);
-extern long vwprint(unsigned short*, va_list args, simple_text_output_interface_t *out);
-
-extern long wprintf(unsigned short *fmt, ...);
+extern uint64 vprint(unsigned char*, va_list args, simple_text_output_interface_t *out);
+extern uint64 vwprint(unsigned short*, va_list args, simple_text_output_interface_t *out);
+extern uint64 wprintf(unsigned short *fmt, ...);
 
 // Exit the system
 extern void exit(efi_status exit_status, int64 data_size, int16 *data);
-
+extern void efi_error(efi_status status, char *fmt, ...);
+extern void wefi_error(efi_status status, wchar *fmt, ...);
 // Exit with all other args 0 and NULL
 extern void shutdown();
 

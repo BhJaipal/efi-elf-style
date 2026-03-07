@@ -197,7 +197,7 @@ typedef struct efi_disk_io2_protocol_t {
 #define EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_REVISION  0x00010000
 #define EFI_FILE_IO_INTERFACE_REVISION EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_REVISION
 
-struct _efi_file_handle_t;
+typedef struct _efi_file_handle_t efi_file_t;
 typedef struct efi_simple_file_system_protocol_t {
 	uint64                  revision;
 
@@ -305,9 +305,7 @@ typedef struct _efi_file_handle_t {
 		input struct _efi_file_handle_t     *file,
 		input output efi_file_io_token_t    *token);
 
-} efi_file_protocol_t, *efi_file_handle_t;
-
-typedef efi_file_protocol_t efi_file_t;
+} efi_file_protocol_t, *efi_file_handle_t, efi_file_t;
 
 // File information types
 

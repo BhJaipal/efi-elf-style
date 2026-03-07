@@ -1,48 +1,50 @@
+#include "types.h"
 #include <efi-lib.h>
 
 #define VA __va_list_tag*
 
-long print_str(char* str, simple_text_output_interface_t *out);
-long print_wstr(short* str, simple_text_output_interface_t *out);
-long print_long(long val, simple_text_output_interface_t *out);
+uint64 print_str(char* str, simple_text_output_interface_t *out);
+uint64 print_wstr(short* str, simple_text_output_interface_t *out);
+uint64 print_long(uint64 val, simple_text_output_interface_t *out);
+uint64 print_ptr(void *val, simple_text_output_interface_t *out);
 /*
  * @precision: float 7 and double 15 precision
  */
-long print_double(double val, char precision, simple_text_output_interface_t *out);
+uint64 print_double(double val, char precision, simple_text_output_interface_t *out);
 
-long printf(const char *fmt, ...) {
+uint64 printf(const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
-	long out = vprint((unsigned char*)fmt, args, global.sys->cout);
+	uint64 out = vprint((unsigned char*)fmt, args, global.sys->cout);
 	va_end(args);
 	return out;
 }
-long wprintf(unsigned short *fmt, ...) {
+uint64 wprintf(unsigned short *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
-	long out = vwprint(fmt, args, global.sys->cout);
-	va_end(args);
-	return out;
-}
-
-long errorf(const char *fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-	long out = vprint((unsigned char*)fmt, args, global.sys->stderr);
-	va_end(args);
-	return out;
-}
-long werrorf(unsigned short *fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-	long out = vwprint(fmt, args, global.sys->stderr);
+	uint64 out = vwprint(fmt, args, global.sys->cout);
 	va_end(args);
 	return out;
 }
 
-long vprint(unsigned char* str, va_list args, simple_text_output_interface_t *out) {
+uint64 errorf(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	uint64 out = vprint((unsigned char*)fmt, args, global.sys->stderr);
+	va_end(args);
+	return out;
+}
+uint64 werrorf(unsigned short *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	uint64 out = vwprint(fmt, args, global.sys->stderr);
+	va_end(args);
+	return out;
+}
+
+uint64 vprint(unsigned char* str, va_list args, simple_text_output_interface_t *out) {
 	short buff[256] = {0};
-	long res_len = 0;
+	uint64 res_len = 0;
 	unsigned char n = 0;
 
 	char c = *str;
@@ -68,7 +70,7 @@ long vprint(unsigned char* str, va_list args, simple_text_output_interface_t *ou
 				if (str[2] == 's') {
 					res_len += print_wstr(va_arg(args, short*), out);
 				} else if (str[2] == 'd') {
-					res_len += print_long(va_arg(args, long), out);
+					res_len += print_long(va_arg(args, uint64), out);
 				} else if (str[2] == 'f') {
 					res_len += print_double(va_arg(args, double), 15, out);
 				}
@@ -86,7 +88,10 @@ long vprint(unsigned char* str, va_list args, simple_text_output_interface_t *ou
 				out->output_string(out, str__c);
 				break;
 			case 'd':
-				res_len += print_long(va_arg(args, long), out);
+				res_len += print_long(va_arg(args, uint32), out);
+				break;
+			case 'p':
+				res_len += print_ptr(va_arg(args, void*), out);
 				break;
 			case '%':
 				out->output_string(out, (short*)u"%");
@@ -113,9 +118,9 @@ long vprint(unsigned char* str, va_list args, simple_text_output_interface_t *ou
 	}
 	return res_len;
 }
-long vwprint(unsigned short* str, va_list args, simple_text_output_interface_t *out) {
+uint64 vwprint(unsigned short* str, va_list args, simple_text_output_interface_t *out) {
 	short buff[256] = {0};
-	long res_len = 0;
+	uint64 res_len = 0;
 	unsigned char n = 0;
 
 	short c = *str;
@@ -141,7 +146,7 @@ long vwprint(unsigned short* str, va_list args, simple_text_output_interface_t *
 				if (str[2] == 's') {
 					res_len += print_wstr(va_arg(args, short*), out);
 				} else if (str[2] == 'd') {
-					res_len += print_long(va_arg(args, long), out);
+					res_len += print_long(va_arg(args, uint64), out);
 				} else if (str[2] == 'f') {
 					res_len += print_double(va_arg(args, double), 15, out);
 				}
@@ -151,7 +156,10 @@ long vwprint(unsigned short* str, va_list args, simple_text_output_interface_t *
 				res_len += print_str(va_arg(args, char*), out);
 				break;
 			case 'd':
-				res_len += print_long(va_arg(args, long), out);
+				res_len += print_long(va_arg(args, uint32), out);
+				break;
+			case 'p':
+				res_len += print_ptr(va_arg(args, void*), out);
 				break;
 			case 'f':
 				res_len += print_double(va_arg(args, double), 7, out);
@@ -187,8 +195,8 @@ long vwprint(unsigned short* str, va_list args, simple_text_output_interface_t *
 	return res_len;
 }
 
-long print_str(char* str, simple_text_output_interface_t *out) {
-	long res_len = 0;
+uint64 print_str(char* str, simple_text_output_interface_t *out) {
+	uint64 res_len = 0;
 
 	char c = *str;
 	while (c) {
@@ -202,8 +210,8 @@ long print_str(char* str, simple_text_output_interface_t *out) {
 }
 
 
-long print_wstr(short* str, simple_text_output_interface_t *out) {
-	long res_len = 0;
+uint64 print_wstr(short* str, simple_text_output_interface_t *out) {
+	uint64 res_len = 0;
 
 	int c = *str;
 	while (c) {
@@ -215,12 +223,12 @@ long print_wstr(short* str, simple_text_output_interface_t *out) {
 	return res_len;
 }
 
-long print_long(long val, simple_text_output_interface_t *out) {
+uint64 print_long(uint64 val, simple_text_output_interface_t *out) {
 	if (!val) {
 		out->output_string(out, (short*)u"0");
 		return 1;
 	}
-	long len = 0;
+	uint64 len = 0;
 	if (val < 0) {
 		val = -val;
 		out->output_string(out, (short*)u"-");
@@ -228,19 +236,23 @@ long print_long(long val, simple_text_output_interface_t *out) {
 	}
 
 	char zeros = 0;
-	long rev = 0;
+	uint64 rev = 0;
+	uint64 x = val;
+	while (!(x % 10)) {
+		x /= 10;
+		zeros++;
+	}
 	while (val) {
 		rev *= 10;
 		rev += val % 10;
-		if (!(val % 10)) zeros++;
 		val /= 10;
 		len++;
 	}
 
 	int s = 0;
-	while (rev % 10) {
+	while (rev) {
 		s = (rev % 10) + 0x30;
-		s &= 0x0000ffff;
+		s &= 0x000000ff;
 		rev /= 10;
 		out->output_string(out, (short*)&s);
 	}
@@ -253,13 +265,13 @@ long print_long(long val, simple_text_output_interface_t *out) {
 /*
  * @precision: float 7 and double 15 precision
  */
-long print_double(double val, char precision, simple_text_output_interface_t *out) {
+uint64 print_double(double val, char precision, simple_text_output_interface_t *out) {
 	if (!val) {
 		out->output_string(out, (short*)u"0");
 		return 1;
 	}
-	long floor_val = (int)val;
-	long res_len = print_long(floor_val, out);
+	uint64 floor_val = (int)val;
+	uint64 res_len = print_long(floor_val, out);
 	if (val < 0) {
 		val = -val;
 		floor_val = (int)val;
@@ -286,3 +298,46 @@ long print_double(double val, char precision, simple_text_output_interface_t *ou
 
 	return res_len;
 }
+uint64 print_ptr(void *val_, simple_text_output_interface_t *out) {
+	out->output_string(out, (short*)u"0x");
+	if (val_ == NULL) {
+		out->output_string(out, (wchar*)u"0");
+		return 3;
+	}
+
+	uint64 len = 2;
+	uint64 val = (uint64)val_;
+	uint64 ptr = 0;
+	char zeros = 0;
+	
+	while (!(val & 0xf)) {
+		zeros++;
+		val >>= 4;
+	}
+	while (val) {
+		ptr <<= 4;
+		ptr |= val & 0xf;
+		val >>= 4;
+	}
+
+	wchar buff[2] = {0};
+	while (ptr) {
+		char chr = ptr & 0xf;
+		if (chr < 10) {
+			buff[0] = chr + 0x30;
+		} else {
+			buff[0] = chr - 10 + 0x61;
+		}
+		out->output_string(out, buff);
+		len++;
+
+		ptr >>= 4;
+	}
+
+	for (char i = 0; i < zeros; i++) {
+		out->output_string(out, (wchar*)u"0");
+	}
+	len += zeros;
+	return len;
+}
+

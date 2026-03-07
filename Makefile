@@ -32,7 +32,14 @@ main.efi: $(call SRC_to_OBJ,$(MAIN)) $(OBJ)
 	$(ARCH)-objcopy -R .comment -R .note -R .note.gnu.build-id main.efi
 
 
-uefi.img: main.efi
+build/kernel.o: example/kernel.c
+	gcc $< -c -o $@ -ffreestanding -fno-pie
+
+kernel.elf: build/kernel.o
+	ld -o $@ -Tkernel-link.ld --oformat binary -N $^
+
+
+uefi.img: main.efi kernel.elf
 	# 1. Create a 64MB empty file
 	dd if=/dev/zero of=$@ bs=1M count=64
 	
@@ -45,6 +52,8 @@ uefi.img: main.efi
 	mmd     -i $@@@1M ::/EFI
 	mmd     -i $@@@1M ::/EFI/BOOT
 	mcopy   -i $@@@1M $< ::/EFI/BOOT/BOOTX64.EFI
+	mcopy   -i $@@@1M kernel.elf ::/kernel.elf
+
 	
 run: uefi.img
 	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -drive file=$<,format=raw -net none
