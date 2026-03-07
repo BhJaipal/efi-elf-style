@@ -1,8 +1,9 @@
-#include <efi-string.h>
+#include "types.h"
 #include <efi-err.h>
 #include <efi-lib.h>
 #include <efi-prot.h>
 #include <efi-ser.h>
+#include <efi-elf.h>
 
 #define KERNEL_EXECUTABLE_PATH u"\\kernel.elf"
 
@@ -12,6 +13,8 @@ typedef struct s_boot_video_info {
 	uint32  vertical_resolution;
 	uint32  pixels_per_scanline;
 } Kernel_Boot_Video_Mode_Info;
+
+void memcpy(void *dest, const void *src, uint64 n);
 
 /**
  * @brief Kernel boot info struct.
@@ -34,8 +37,29 @@ efi_status load_kernel_image(input efi_file_t* const root_file_system,
 	output efi_virtual_addr_t* kernel_entry_point) {
 	efi_file_t *kernel_img = NULL;
 	efi_status s = root_file_system->open(root_file_system, &kernel_img, (wchar*)kernel_image_filename, EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY);
+	
+	/*
+	efi_file_t *some = NULL;
+	root_file_system->open(root_file_system, &some, (wchar*)u"\\some_data.txt", EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY);
+	uint64 sz;
+	char *buf;
+	some->read(some, &sz, buf);
+	printf("Reading some_data.txt: %s\r\n", buf);
+	*/
+
+	uint64 kernel_size = 0;
+	void *kern_buff = NULL;
+	Elf64_hdr_t header;
+	kernel_img->read(kernel_img, &kernel_size, kern_buff);
+	memcpy(&header, kern_buff, sizeof(Elf64_hdr_t));
 
 	return s;
+}
+
+void memcpy(void *dest, const void *src, uint64 n) {
+	for (uint64 i = 0; i < n; i++) {
+		((char*)dest)[i] = ((char*)src)[i];
+	}
 }
 
 efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {

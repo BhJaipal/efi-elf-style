@@ -251,14 +251,35 @@ typedef enum : uint16 {
     EM_RISCV         = 0x00F3,
 } e_machine_t;
 
+/* Values for Elf64_Ehdr.e_flags.  */
+#define EF_SPARCV9_MM		3
+#define EF_SPARCV9_TSO		0
+#define EF_SPARCV9_PSO		1
+#define EF_SPARCV9_RMO		2
+#define EF_SPARC_LEDATA		0x800000 /* little endian data */
+#define EF_SPARC_EXT_MASK	0xFFFF00
+#define EF_SPARC_32PLUS		0x000100 /* generic V8+ features */
+#define EF_SPARC_SUN_US1	0x000200 /* Sun UltraSPARC1 extensions */
+#define EF_SPARC_HAL_R1		0x000400 /* HAL R1 extensions */
+#define EF_SPARC_SUN_US3	0x000800 /* Sun UltraSPARCIII extensions */
+
 typedef struct Elf64_hdr_t {
 	e_type_t        e_type;          /* object file type */
 	e_machine_t     e_machine;       /* Architechture */
 	uint32          e_version;
+#ifdef __x86_64
 	uint64          e_entry;
+#else
+	uint32          e_entry;
+#endif /* ifdef __x86_64 */
 
+#ifdef __x86_64
 	uint64          e_phoff;
 	uint64          e_shoff;
+#else
+	uint32          e_phoff;
+	uint32          e_shoff;
+#endif /* ifdef __x86_64 */
 
 	uint32          e_flags;         /* Processor flags */
 	uint16          e_ehsize;        /* ELF header size */
@@ -268,5 +289,118 @@ typedef struct Elf64_hdr_t {
 	uint16          e_shnum;         /* Section header count */
 	uint16          e_shstrndx;      /* Section header last index */
 } Elf64_hdr_t;
+
+typedef enum : uint32 {
+	PT_NULL         = 0x00,
+    PT_LOAD         = 0x01,
+    PT_DYNAMIC      = 0x02,
+    PT_INTERP       = 0x03,
+    PT_NOTE         = 0x04,
+    PT_SHLIB        = 0x05,
+    PT_PHDR         = 0x06,
+    PT_TLS          = 0x07,
+    PT_LOOS         = 0x60000000,
+    PT_HIOS         = 0x6FFFFFFF,
+    PT_GNU_EH_FRAME = PT_LOOS + 0x474E550,
+    PT_GNU_STACK    = PT_LOOS + 0x474E551,
+    PT_GNU_RELRO    = PT_LOOS + 0x474E552,
+    PT_GNU_PROPERTY = PT_LOOS + 0x474E553,
+    PT_SUNWBSS      = 0x6FFFFFFA,
+    PT_SUNWSTACK    = 0x6FFFFFFB,
+    PT_ARM_ARCHEXT  = 0x70000000,
+    PT_ARM_UNWIND   = 0x70000001,
+} p_type_t;
+
+/* Legal values for p_flags (segment flags).  */
+
+#define PF_X		(1 << 0)	/* Segment is executable */
+#define PF_W		(1 << 1)	/* Segment is writable */
+#define PF_R		(1 << 2)	/* Segment is readable */
+#define PF_MASKOS	0x0ff00000	/* OS-specific */
+#define PF_MASKPROC	0xf0000000	/* Processor-specific */
+
+typedef struct {
+	p_type_t p_type;
+	uint32   p_flags;
+	uint64   p_offset;
+
+	uint64   p_phy_addr;
+	uint64   p_vir_addr;
+
+	uint64   p_filesz;
+	uint64   p_memsz;
+	uint64   p_align;
+} Elf64_phdr_t;
+
+#define SHF_WRITE	     (1 << 0)       /* Writable */
+#define SHF_ALLOC	     (1 << 1)       /* Occupies memory during execution */
+#define SHF_EXECINSTR	     (1 << 2)   /* Executable */
+#define SHF_MERGE	     (1 << 4)       /* Might be merged */
+#define SHF_STRINGS	     (1 << 5)       /* Contains nul-terminated strings */
+#define SHF_INFO_LINK	     (1 << 6)   /* `sh_info' contains SHT index */
+#define SHF_LINK_ORDER	     (1 << 7)   /* Preserve order after combining */
+#define SHF_OS_NONCONFORMING (1 << 8)   /* Non-standard OS specific handling required */
+#define SHF_GROUP	     (1 << 9)       /* Section is member of a group.  */
+#define SHF_TLS		     (1 << 10)      /* Section hold thread-local data.  */
+#define SHF_COMPRESSED	     (1 << 11)  /* Section with compressed data. */
+#define SHF_MASKOS	     0x0ff00000     /* OS-specific.  */
+#define SHF_MASKPROC	     0xf0000000 /* Processor-specific */
+#define SHF_GNU_RETAIN	     (1 << 21)  /* Not to be GCed by linker.  */
+#define SHF_ORDERED	     (1 << 30)  	/* Special ordering requirement (Solaris).  */
+#define SHF_EXCLUDE	     (1U << 31) 	/* Section is excluded unless referenced or allocated (Solaris).*/
+
+typedef enum : uint32 {
+    SH_NULL                   = 0x00,
+    SH_PROGBITS               = 0x01,
+    SH_SYMTAB                 = 0x02,
+    SH_STRTAB                 = 0x03,
+    SH_RELA                   = 0x04,
+    SH_HASH                   = 0x05,
+    SH_DYNAMIC                = 0x06,
+    SH_NOTE                   = 0x07,
+    SH_NOBITS                 = 0x08,
+    SH_REL                    = 0x09,
+    SH_SHLIB                  = 0x0A,
+    SH_DYNSYM                 = 0x0B,
+    SH_UNKNOWN12              = 0x0C,
+    SH_UNKNOWN13              = 0x0D,
+    SH_INIT_ARRAY             = 0x0E,
+    SH_FINI_ARRAY             = 0x0F,
+    SH_PREINIT_ARRAY          = 0x10,
+    SH_GROUP                  = 0x11,
+    SH_SYMTAB_SHNDX           = 0x12,
+    SH_GNU_INCREMENTAL_INPUTS = 0x6FFF4700,
+    SH_GNU_ATTRIBUTES         = 0x6FFFFFF5,
+    SH_GNU_HASH               = 0x6FFFFFF6,
+    SH_GNU_LIBLIST            = 0x6FFFFFF7,
+    SH_CHECKSUM               = 0x6FFFFFF8,
+    SH_SUNW_move              = 0x6FFFFFFA,
+    SH_SUNW_COMDAT            = 0x6FFFFFFB,
+    SH_SUNW_syminfo           = 0x6FFFFFFC,
+    SH_GNU_verdef             = 0x6FFFFFFD,
+    SH_GNU_verneed            = 0x6FFFFFFE,
+    SH_GNU_versym             = 0x6FFFFFFF,
+    SH_ARM_EXIDX              = 0x70000001,
+    SH_ARM_PREEMPTMAP         = 0x70000002,
+    SH_ARM_ATTRIBUTES         = 0x70000003,
+    SH_ARM_DEBUGOVERLAY       = 0x70000004,
+    SH_ARM_OVERLAYSECTION     = 0x70000005,
+} sh_type_t;
+
+typedef struct {
+	uint32    sh_name;
+	sh_type_t sh_type;
+	uint64    sh_flags;
+
+	uint64    sh_addr;
+	uint64    sh_offset;
+
+	uint64    sh_size;
+	uint32    sh_link;
+	uint32    sh_info;
+
+	uint64    sh_addralign;
+	uint64    sh_entrysize;
+} Elf64_shdr_t;
 
 #endif /* ifndef EFI_ELF_ELF */

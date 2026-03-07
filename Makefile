@@ -36,7 +36,7 @@ build/kernel.o: example/kernel.c
 	gcc $< -c -o $@ -ffreestanding -fno-pie
 
 kernel.elf: build/kernel.o
-	ld -o $@ -Tkernel-link.ld --oformat binary -N $^
+	ld -o $@ -Tkernel-link.ld  -N $^
 
 
 uefi.img: main.efi kernel.elf
@@ -53,6 +53,7 @@ uefi.img: main.efi kernel.elf
 	mmd     -i $@@@1M ::/EFI/BOOT
 	mcopy   -i $@@@1M $< ::/EFI/BOOT/BOOTX64.EFI
 	mcopy   -i $@@@1M kernel.elf ::/kernel.elf
+	# mcopy   -i $@@@1M some_data.txt ::/some_data.txt
 
 	
 run: uefi.img

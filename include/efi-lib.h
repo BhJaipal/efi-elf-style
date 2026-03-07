@@ -48,7 +48,7 @@ extern uint64 wprintf(unsigned short *fmt, ...);
 // Exit the system
 extern void exit(efi_status exit_status, int64 data_size, int16 *data);
 extern void efi_error(efi_status status, char *fmt, ...);
-extern void wefi_error(efi_status status, wchar *fmt, ...);
+extern void wefi_error(efi_status status, wuchar *fmt, ...);
 // Exit with all other args 0 and NULL
 extern void shutdown();
 
