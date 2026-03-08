@@ -28,7 +28,7 @@ typedef unsigned char       uchar;
 typedef void* efi_handle_t;
 typedef void* efi_event_t;
 // stdcall result
-typedef uint64 efi_status;
+typedef int64 efi_status;
 // EFI Logical Block Addressing
 typedef uint64 efi_lba_t;
 typedef uint64 efi_tpl_t;

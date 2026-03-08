@@ -36,7 +36,7 @@ build/kernel.o: example/kernel.c
 	gcc $< -c -o $@ -ffreestanding -fno-pie
 
 kernel.elf: build/kernel.o
-	ld -o $@ -Tkernel-link.ld  -N $^
+	ld --entry kmain -o $@ $^
 
 
 uefi.img: main.efi kernel.elf

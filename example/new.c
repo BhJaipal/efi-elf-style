@@ -14,7 +14,7 @@ typedef struct s_boot_video_info {
 	uint32  pixels_per_scanline;
 } Kernel_Boot_Video_Mode_Info;
 
-void memcpy(void *dest, const void *src, uint64 n);
+void *memcpy(void *dest, const void *src, uint64 n);
 
 /**
  * @brief Kernel boot info struct.
@@ -32,34 +32,83 @@ typedef struct s_boot_info {
 	Kernel_Boot_Video_Mode_Info    video_mode_info;
 } Kernel_Boot_Info;
 
-efi_status load_kernel_image(input efi_file_t* const root_file_system,
-	input wuchar* kernel_image_filename,
-	output efi_virtual_addr_t* kernel_entry_point) {
-	efi_file_t *kernel_img = NULL;
-	efi_status s = root_file_system->open(root_file_system, &kernel_img, (wchar*)kernel_image_filename, EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY);
-	
-	/*
-	efi_file_t *some = NULL;
-	root_file_system->open(root_file_system, &some, (wchar*)u"\\some_data.txt", EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY);
-	uint64 sz;
-	char *buf;
-	some->read(some, &sz, buf);
-	printf("Reading some_data.txt: %s\r\n", buf);
-	*/
-
-	uint64 kernel_size = 0;
-	void *kern_buff = NULL;
-	Elf64_hdr_t header;
-	kernel_img->read(kernel_img, &kernel_size, kern_buff);
-	memcpy(&header, kern_buff, sizeof(Elf64_hdr_t));
-
-	return s;
+int memcmp(const void *dest, const void *src, uint64 n) {
+	for (uint64 i = 0; i < n; i++) {
+		if (((char*)dest)[i] != ((char*)src)[i])
+			return 1;
+	}
+	return 0;
 }
 
-void memcpy(void *dest, const void *src, uint64 n) {
+void load_kernel_image(
+	input efi_file_t* root_file_system,
+	input wuchar* kernel_image_filename,
+	Elf64 *elf_object
+) {
+	efi_file_t *kernel_img = NULL;
+	if (EFI_ERROR(root_file_system->open(root_file_system, &kernel_img, (wchar*)kernel_image_filename, EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY))) {
+		printf("Can't find kernel\r\n");
+		return;
+	} else {
+		printf("Loaded kernel\r\n");
+	}
+
+	efi_file_io_token_t kernel_io_token;
+	kernel_io_token.buffer_size = 64;
+	kernel_img->read_ex(kernel_img, &kernel_io_token);
+
+	Elf64_head_t *elf = kernel_io_token.buffer;
+
+	global.boot->memory.allocate_pool(EFI_LOADER_DATA, sizeof(Elf64), (void**)elf_object);
+	memcpy(&elf_object->head, kernel_io_token.buffer, 64);
+
+	efi_status s = 0;
+
+	if (!memcmp(elf_object->head.e_ident.ei_magic, Elf_Ident_Magic, 4) && 
+		elf_object->head.elf64_hdr.e_type == ET_EXEC && 
+		elf_object->head.elf64_hdr.e_machine == EM_X86_64
+	) {
+		printf("Valid elf executable\r\n");
+		printf("ehdr:\r\n  ehdr.e_type = ET_EXEC\r\n  ehdr.e_machine = EM_X86_64\r\n");
+	} else {
+		printf("Invalid elf file\r\n");
+		return;
+	}
+
+	efi_file_io_token_t section_token = {0}, program_token = {0}, content_token = {0};
+
+	program_token.buffer_size = elf->elf64_hdr.e_phnum * elf->elf64_hdr.e_phentsize;
+	s = kernel_img->read_ex(kernel_img, &program_token);
+	if (s < 0) {
+		efi_error(s, "Can't load program header\r\n");
+		return;
+	}
+	elf_object->body.phdr = program_token.buffer;
+
+	content_token.buffer_size = elf->elf64_hdr.e_shoff - program_token.buffer_size - 64;
+	s = kernel_img->read_ex(kernel_img, &content_token);
+	if (s < 0) {
+		efi_error(s, "Can't load body\r\n");
+		return;
+	}
+	elf_object->body.body = content_token.buffer;
+
+	section_token.buffer_size = elf->elf64_hdr.e_shnum * elf->elf64_hdr.e_shentsize;
+	s = kernel_img->read_ex(kernel_img, &section_token);
+	if (s < 0) {
+		efi_error(s, "Can't load section header\r\n");
+		return;
+	}
+	elf_object->body.shdr = section_token.buffer;
+
+	// void (*entry_point)() = (void(*)())(elf_object->body.shdr[2].sh_offset + content_token.buffer - 64 - program_token.buffer_size);
+}
+
+void *memcpy(void *dest, const void *src, uint64 n) {
 	for (uint64 i = 0; i < n; i++) {
 		((char*)dest)[i] = ((char*)src)[i];
 	}
+	return dest;
 }
 
 efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
@@ -86,10 +135,6 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 	}
 
 	efi_file_t *root_fs = NULL;
-	efi_physical_addr_t kernel_entry_point = 0;
-	efi_memory_descriptor_t *mmap_desc = NULL;
-	void (*kernel_entry)(Kernel_Boot_Info* boot_info);
-	Kernel_Boot_Info boot_info = {0};
 
 	if (EFI_ERROR(fs_proto->open_volume(fs_proto, &root_fs))) {
 		printf("Can't load rootFS\r\n");
@@ -97,11 +142,9 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 		printf("RootFS loaded\r\n");
 	}
 
-	if (EFI_ERROR(load_kernel_image(root_fs, KERNEL_EXECUTABLE_PATH, &kernel_entry_point))) {
-		printf("Can't find kernel\r\n");
-	} else {
-		printf("Loaded kernel\r\n");
-	}
+	Elf64 *kernel = NULL;
+	global.boot->memory.allocate_pool(EFI_LOADER_DATA, sizeof(Elf64), (void**)&kernel);
+	load_kernel_image(root_fs, KERNEL_EXECUTABLE_PATH, kernel);
 
 	efi_input_key_t key;
 	printf("\nPress:\r\n    [Qq]: exit\r\n    [Kk]: boot menu\r\n");

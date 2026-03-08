@@ -252,16 +252,18 @@ typedef enum : uint16 {
 } e_machine_t;
 
 /* Values for Elf64_Ehdr.e_flags.  */
-#define EF_SPARCV9_MM		3
-#define EF_SPARCV9_TSO		0
-#define EF_SPARCV9_PSO		1
-#define EF_SPARCV9_RMO		2
-#define EF_SPARC_LEDATA		0x800000 /* little endian data */
-#define EF_SPARC_EXT_MASK	0xFFFF00
-#define EF_SPARC_32PLUS		0x000100 /* generic V8+ features */
-#define EF_SPARC_SUN_US1	0x000200 /* Sun UltraSPARC1 extensions */
-#define EF_SPARC_HAL_R1		0x000400 /* HAL R1 extensions */
-#define EF_SPARC_SUN_US3	0x000800 /* Sun UltraSPARCIII extensions */
+typedef enum {
+	EF_SPARCV9_MM     = 3,
+	EF_SPARCV9_TSO    = 0,
+	EF_SPARCV9_PSO    = 1,
+	EF_SPARCV9_RMO    = 2,
+	EF_SPARC_LEDATA   = 0x800000, /* little endian data */
+	EF_SPARC_EXT_MASK = 0xFFFF00,
+	EF_SPARC_32PLUS   = 0x000100, /* generic V8+ features */
+	EF_SPARC_SUN_US1  = 0x000200, /* Sun UltraSPARC1 extensions */
+	EF_SPARC_HAL_R1   = 0x000400, /* HAL R1 extensions */
+	EF_SPARC_SUN_US3  = 0x000800, /* Sun UltraSPARCIII extensions */
+} e_flags_t;
 
 typedef struct Elf64_hdr_t {
 	e_type_t        e_type;          /* object file type */
@@ -274,14 +276,14 @@ typedef struct Elf64_hdr_t {
 #endif /* ifdef __x86_64 */
 
 #ifdef __x86_64
-	uint64          e_phoff;
-	uint64          e_shoff;
+	uint64          e_phoff;        /* Program header location/ starting point */
+	uint64          e_shoff;        /* Section header location/ starting point */
 #else
 	uint32          e_phoff;
 	uint32          e_shoff;
 #endif /* ifdef __x86_64 */
 
-	uint32          e_flags;         /* Processor flags */
+	e_flags_t       e_flags;         /* Processor flags */
 	uint16          e_ehsize;        /* ELF header size */
 	uint16          e_phentsize;     /* Program header size */
 	uint16          e_phnum;         /* Program header count */
@@ -313,41 +315,45 @@ typedef enum : uint32 {
 
 /* Legal values for p_flags (segment flags).  */
 
-#define PF_X		(1 << 0)	/* Segment is executable */
-#define PF_W		(1 << 1)	/* Segment is writable */
-#define PF_R		(1 << 2)	/* Segment is readable */
-#define PF_MASKOS	0x0ff00000	/* OS-specific */
-#define PF_MASKPROC	0xf0000000	/* Processor-specific */
+typedef enum : uint32 {
+	PF_X        = (1 << 0),     /* Segment is executable */
+	PF_W        = (1 << 1),     /* Segment is writable */
+	PF_R        = (1 << 2),     /* Segment is readable */
+	PF_MASKOS   = 0x0ff00000,   /* OS-specific */
+	PF_MASKPROC = 0xf0000000,   /* Processor-specific */
+} p_flags_t;
 
 typedef struct {
-	p_type_t p_type;
-	uint32   p_flags;
-	uint64   p_offset;
+	p_type_t    p_type;
+	uint32      p_flags;
+	uint64      p_offset;
 
-	uint64   p_phy_addr;
-	uint64   p_vir_addr;
+	uint64      p_phy_addr;
+	uint64      p_vir_addr;
 
-	uint64   p_filesz;
-	uint64   p_memsz;
-	uint64   p_align;
+	uint64      p_filesz;
+	uint64      p_memsz;
+	uint64      p_align;
 } Elf64_phdr_t;
 
-#define SHF_WRITE	     (1 << 0)       /* Writable */
-#define SHF_ALLOC	     (1 << 1)       /* Occupies memory during execution */
-#define SHF_EXECINSTR	     (1 << 2)   /* Executable */
-#define SHF_MERGE	     (1 << 4)       /* Might be merged */
-#define SHF_STRINGS	     (1 << 5)       /* Contains nul-terminated strings */
-#define SHF_INFO_LINK	     (1 << 6)   /* `sh_info' contains SHT index */
-#define SHF_LINK_ORDER	     (1 << 7)   /* Preserve order after combining */
-#define SHF_OS_NONCONFORMING (1 << 8)   /* Non-standard OS specific handling required */
-#define SHF_GROUP	     (1 << 9)       /* Section is member of a group.  */
-#define SHF_TLS		     (1 << 10)      /* Section hold thread-local data.  */
-#define SHF_COMPRESSED	     (1 << 11)  /* Section with compressed data. */
-#define SHF_MASKOS	     0x0ff00000     /* OS-specific.  */
-#define SHF_MASKPROC	     0xf0000000 /* Processor-specific */
-#define SHF_GNU_RETAIN	     (1 << 21)  /* Not to be GCed by linker.  */
-#define SHF_ORDERED	     (1 << 30)  	/* Special ordering requirement (Solaris).  */
-#define SHF_EXCLUDE	     (1U << 31) 	/* Section is excluded unless referenced or allocated (Solaris).*/
+typedef enum : uint64 {
+	SHF_WRITE            = (1 << 0),    /* Writable */
+	SHF_ALLOC            = (1 << 1),    /* Occupies memory during execution */
+	SHF_EXECINSTR        = (1 << 2),    /* Executable */
+	SHF_MERGE            = (1 << 4),    /* Might be merged */
+	SHF_STRINGS          = (1 << 5),    /* Contains nul-terminated strings */
+	SHF_INFO_LINK        = (1 << 6),    /* `sh_info' contains SHT index */
+	SHF_LINK_ORDER       = (1 << 7),    /* Preserve order after combining */
+	SHF_OS_NONCONFORMING = (1 << 8),    /* Non-standard OS specific handling required */
+	SHF_GROUP            = (1 << 9),    /* Section is member of a group.  */
+	SHF_TLS              = (1 << 10),   /* Section hold thread-local data.  */
+	SHF_COMPRESSED       = (1 << 11),   /* Section with compressed data. */
+	SHF_MASKOS           = 0x0ff00000,  /* OS-specific.  */
+	SHF_MASKPROC         = 0xf0000000,  /* Processor-specific */
+	SHF_GNU_RETAIN       = (1 << 21),   /* Not to be GCed by linker.  */
+	SHF_ORDERED          = (1 << 30),   /* Special ordering requirement (Solaris).  */
+	SHF_EXCLUDE          = (1U << 31),  /* Section is excluded unless referenced or allocated (Solaris).*/
+} sh_flags_t;
 
 typedef enum : uint32 {
     SH_NULL                   = 0x00,
@@ -388,19 +394,86 @@ typedef enum : uint32 {
 } sh_type_t;
 
 typedef struct {
-	uint32    sh_name;
-	sh_type_t sh_type;
-	uint64    sh_flags;
+	uint32        sh_name;
+	sh_type_t     sh_type;
+	sh_flags_t    sh_flags;
 
-	uint64    sh_addr;
-	uint64    sh_offset;
+	uint64        sh_addr;
+	uint64        sh_offset;
 
-	uint64    sh_size;
-	uint32    sh_link;
-	uint32    sh_info;
+	uint64        sh_size;
+	uint32        sh_link;
+	uint32        sh_info;
 
-	uint64    sh_addralign;
-	uint64    sh_entrysize;
+	uint64        sh_addralign;
+	uint64        sh_entrysize;
 } Elf64_shdr_t;
+
+typedef enum : uint8 {
+    DEFAULT   = 0x00,
+    INTERNAL  = 0x01,
+    HIDDEN    = 0x02,
+    PROTECTED = 0x03,
+} stv_t;
+
+typedef enum : uint8 {
+    STT_NOTYPE     = 0,  /* Symbol type is unspecified */
+    STT_OBJECT     = 1,  /* Symbol is a data object */
+    STT_FUNC       = 2,  /* Symbol is a code object */
+    STT_SECTION    = 3,  /* Symbol associated with a section */
+    STT_FILE       = 4,  /* Symbol's name is file name */
+    STT_COMMON     = 5,  /* Symbol is a common data object */
+    STT_TLS        = 6,  /* Symbol is thread-local data object */
+    STT_NUM        = 7,  /* Number of defined types. */
+    STT_LOOS       = 10, /* Start of OS-specific */
+    STT_GNU_IFUNC  = 10, /* Symbol is indirect code object */
+    STT_HIOS       = 12, /* End of OS-specific */
+    STT_LOPROC     = 13, /* Start of processor-specific */
+    STT_HIPROC     = 15, /* End of processor-specific */
+} st_type_t;
+
+typedef enum : uint8 {
+    STB_LOCAL       = 0,  /* Local symbol */
+    STB_GLOBAL      = 1,  /* Global symbol */
+    STB_WEAK        = 2,  /* Weak symbol */
+    STB_NUM         = 3,  /* Number of defined types. */
+    STB_LOOS        = 10, /* Start of OS-specific */
+    STB_GNU_UNIQUE  = 10, /* Unique symbol. */
+    STB_HIOS        = 12, /* End of OS-specific */
+    STB_LOPROC      = 13, /* Start of processor-specific */
+    STB_HIPROC      = 15, /* End of processor-specific */
+} st_bind_t;
+
+typedef struct {
+	st_bind_t st_bind : 4;
+    st_type_t st_type : 4;
+} st_info_t;
+
+typedef struct {
+	uint32      st_name;
+    st_info_t   st_info;
+    stv_t       st_other;
+    uint16      st_shndx;
+    uint64      st_value;
+    uint64      st_size;
+} Elf64_sym_t;
+
+
+typedef struct {
+	e_ident_t   e_ident;
+	Elf64_hdr_t elf64_hdr;
+} Elf64_head_t;
+
+typedef struct {
+	Elf64_phdr_t *phdr;
+	uint64       body_size;
+	uint8        *body;
+	Elf64_shdr_t *shdr;
+} Elf64_body_t;
+
+typedef struct {
+	Elf64_head_t head;
+	Elf64_body_t body;
+} Elf64;
 
 #endif /* ifndef EFI_ELF_ELF */
