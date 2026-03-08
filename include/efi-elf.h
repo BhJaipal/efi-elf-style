@@ -266,6 +266,7 @@ typedef enum {
 } e_flags_t;
 
 typedef struct Elf64_hdr_t {
+	e_ident_t       e_ident;
 	e_type_t        e_type;          /* object file type */
 	e_machine_t     e_machine;       /* Architechture */
 	uint32          e_version;
@@ -458,12 +459,6 @@ typedef struct {
     uint64      st_size;
 } Elf64_sym_t;
 
-
-typedef struct {
-	e_ident_t   e_ident;
-	Elf64_hdr_t elf64_hdr;
-} Elf64_head_t;
-
 typedef struct {
 	Elf64_phdr_t *phdr;
 	uint64       body_size;
@@ -472,7 +467,7 @@ typedef struct {
 } Elf64_body_t;
 
 typedef struct {
-	Elf64_head_t head;
+	Elf64_hdr_t  head;
 	Elf64_body_t body;
 } Elf64;
 

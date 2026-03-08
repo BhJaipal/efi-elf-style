@@ -40,6 +40,8 @@ int memcmp(const void *dest, const void *src, uint64 n) {
 	return 0;
 }
 
+void load_segment(efi_file_t *kernel_img, Elf64_phdr_t phdr);
+
 void load_kernel_image(
 	input efi_file_t* root_file_system,
 	input wuchar* kernel_image_filename,
@@ -50,14 +52,13 @@ void load_kernel_image(
 		printf("Can't find kernel\r\n");
 		return;
 	} else {
-		printf("Loaded kernel\r\n");
+		printf("Found kernel\r\n");
 	}
 
 	efi_file_io_token_t kernel_io_token;
 	kernel_io_token.buffer_size = 64;
 	kernel_img->read_ex(kernel_img, &kernel_io_token);
 
-	Elf64_head_t *elf = kernel_io_token.buffer;
 
 	global.boot->memory.allocate_pool(EFI_LOADER_DATA, sizeof(Elf64), (void**)elf_object);
 	memcpy(&elf_object->head, kernel_io_token.buffer, 64);
@@ -65,8 +66,8 @@ void load_kernel_image(
 	efi_status s = 0;
 
 	if (!memcmp(elf_object->head.e_ident.ei_magic, Elf_Ident_Magic, 4) && 
-		elf_object->head.elf64_hdr.e_type == ET_EXEC && 
-		elf_object->head.elf64_hdr.e_machine == EM_X86_64
+		elf_object->head.e_type == ET_EXEC && 
+		elf_object->head.e_machine == EM_X86_64
 	) {
 		printf("Valid elf executable\r\n");
 		printf("ehdr:\r\n  ehdr.e_type = ET_EXEC\r\n  ehdr.e_machine = EM_X86_64\r\n");
@@ -77,29 +78,41 @@ void load_kernel_image(
 
 	efi_file_io_token_t section_token = {0}, program_token = {0}, content_token = {0};
 
-	program_token.buffer_size = elf->elf64_hdr.e_phnum * elf->elf64_hdr.e_phentsize;
+	program_token.buffer_size = elf_object->head.e_phnum * elf_object->head.e_phentsize;
+	content_token.buffer_size = elf_object->head.e_shoff - program_token.buffer_size - 64;
+	section_token.buffer_size = elf_object->head.e_shnum * elf_object->head.e_shentsize;
+
 	s = kernel_img->read_ex(kernel_img, &program_token);
 	if (s < 0) {
 		efi_error(s, "Can't load program header\r\n");
 		return;
 	}
-	elf_object->body.phdr = program_token.buffer;
 
-	content_token.buffer_size = elf->elf64_hdr.e_shoff - program_token.buffer_size - 64;
 	s = kernel_img->read_ex(kernel_img, &content_token);
 	if (s < 0) {
 		efi_error(s, "Can't load body\r\n");
 		return;
 	}
-	elf_object->body.body = content_token.buffer;
 
-	section_token.buffer_size = elf->elf64_hdr.e_shnum * elf->elf64_hdr.e_shentsize;
 	s = kernel_img->read_ex(kernel_img, &section_token);
 	if (s < 0) {
 		efi_error(s, "Can't load section header\r\n");
 		return;
 	}
+
+	elf_object->body.phdr = program_token.buffer;
+	elf_object->body.body = content_token.buffer;
 	elf_object->body.shdr = section_token.buffer;
+	
+	for (uint16 i = 0; i < elf_object->head.e_phnum; i++) {
+		Elf64_phdr_t phdr = elf_object->body.phdr[i];
+		if (phdr.p_type == PT_LOAD)
+			load_segment(kernel_img, phdr);
+	}
+	printf("Done all phdr\r\n");
+	kernel_img->close(kernel_img);
+
+	printf("Kernel loaded\r\n");
 
 	// void (*entry_point)() = (void(*)())(elf_object->body.shdr[2].sh_offset + content_token.buffer - 64 - program_token.buffer_size);
 }
@@ -109,6 +122,25 @@ void *memcpy(void *dest, const void *src, uint64 n) {
 		((char*)dest)[i] = ((char*)src)[i];
 	}
 	return dest;
+}
+
+void load_segment(efi_file_t *kernel_img, Elf64_phdr_t phdr) {
+	printf("Starting phdr\r\n");
+	void *program_data = NULL;
+	uint64 buffer_size = 0;
+	uint64 page_segment_count = EFI_SIZE_TO_PAGES(phdr.p_memsz);
+
+	kernel_img->set_position(kernel_img, phdr.p_filesz);
+	global.boot->memory.allocate_pages(ALLOCATE_ADDRESS, EFI_LOADER_DATA, page_segment_count, &phdr.p_phy_addr);
+
+	if (phdr.p_filesz) {
+		global.boot->memory.allocate_pool(EFI_LOADER_CODE, buffer_size, &program_data);
+
+		kernel_img->read(kernel_img, &buffer_size, program_data);
+		global.boot->copy_mem((void*)phdr.p_phy_addr, program_data, phdr.p_filesz);
+		global.boot->memory.free_pool(program_data);
+	}
+	printf("Ending phdr\r\n");
 }
 
 efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
@@ -122,9 +154,9 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 	efi_handle_t *fs_handles = NULL;
 
 	if (EFI_ERROR(global.boot->locate_handle_buffer(BY_PROTOCOL, &gEfiSimpleFileSystemProtocolGuid, NULL, &fs_handle_sz, &fs_handles))) {
-		printf("Can't load fs\r\n");
+		printf("Can't load FS handle\r\n");
 	} else {
-		printf("Loaded fs, %d handles\r\n", fs_handle_sz);
+		printf("Loaded FS handle, %d handles\r\n", fs_handle_sz);
 	}
 
 	efi_simple_file_system_protocol_t *fs_proto = NULL;
@@ -137,7 +169,7 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 	efi_file_t *root_fs = NULL;
 
 	if (EFI_ERROR(fs_proto->open_volume(fs_proto, &root_fs))) {
-		printf("Can't load rootFS\r\n");
+		printf("Can't load RootFS\r\n");
 	} else {
 		printf("RootFS loaded\r\n");
 	}

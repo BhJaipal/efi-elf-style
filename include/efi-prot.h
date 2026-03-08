@@ -282,7 +282,7 @@ typedef struct _efi_file_handle_t {
 		input uint64                        buffer_size,
 		input void                          *buffer);
 
-	efi_status              (*Flush) (
+	efi_status              (*flush) (
 		input struct _efi_file_handle_t     *file);
 
 	efi_status              (*open_ex) (
