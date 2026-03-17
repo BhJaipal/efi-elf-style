@@ -265,7 +265,7 @@ typedef enum {
 	EF_SPARC_SUN_US3  = 0x000800, /* Sun UltraSPARCIII extensions */
 } e_flags_t;
 
-typedef struct Elf64_hdr_t {
+typedef struct {
 	e_ident_t       e_ident;
 	e_type_t        e_type;          /* object file type */
 	e_machine_t     e_machine;       /* Architechture */
@@ -461,9 +461,6 @@ typedef struct {
 
 typedef struct {
 	Elf64_phdr_t *phdr;
-	uint64       body_size;
-	uint8        *body;
-	Elf64_shdr_t *shdr;
 } Elf64_body_t;
 
 typedef struct {

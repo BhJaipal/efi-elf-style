@@ -32,11 +32,14 @@ main.efi: $(call SRC_to_OBJ,$(MAIN)) $(OBJ)
 	$(ARCH)-objcopy -R .comment -R .note -R .note.gnu.build-id main.efi
 
 
-build/kernel.o: example/kernel.c
-	gcc $< -c -o $@ -ffreestanding -fno-pie
+build/kernel/%.o: example/kernel/%.asm
+	as $< -o $@
 
-kernel.elf: build/kernel.o
-	ld --entry kmain -o $@ $^
+build/kernel/%.o: example/kernel/%.c
+	gcc $< -c -o $@ -ffreestanding -fno-pie -fPIE -Iinclude/kernel
+
+kernel.elf: build/kernel/kernel.o build/kernel/entry.o build/kernel/port.o build/kernel/uart.o build/kernel/vga.o
+	ld -T./example/kernel/kernel.ld -o $@ $^
 
 
 uefi.img: main.efi kernel.elf
