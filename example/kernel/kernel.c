@@ -34,13 +34,15 @@ uint32_t pixels_per_scanline = 0;
 
 int cursor_x = 0;
 int cursor_y = 0;
+int new_line_pad = 0;
 
 unsigned char font8x8_basic[128][8];
 
 void print_char(int color, char ch) {
 	if (ch == '\n') {
 		cursor_x = 0;
-		cursor_y++;
+		new_line_pad = 1;
+		cursor_y += 1;
 		return;
 	}
 	if (ch < ' ' || ch == 0x7f) {
@@ -54,8 +56,18 @@ void print_char(int color, char ch) {
 		for (int j = 0; j < 8; j++) {
 			if ((font8x8_basic[ch][i] >> j) & 3) {
 				uint32_t *at = 0;
-				at = framebuffer + (cursor_x * 8) + (j) + ((cursor_y * 8 + i) * pixels_per_scanline);
+				at = framebuffer + (cursor_x * 8) + (j) + 1 + ((cursor_y * 8 + i) * pixels_per_scanline);
 				*at = color;
+				/*
+				at = framebuffer + (cursor_x * 8) + (j) + ((cursor_y * 8 + (i * 2)) * pixels_per_scanline);
+				*at = color;
+				at = framebuffer + (cursor_x * 8) + (j) + ((cursor_y * 8 + (i * 2) + 1) * pixels_per_scanline);
+				*at = color;
+				at = framebuffer + (cursor_x * 8) + (j * 2) + ((cursor_y * 8 + (i * 2)) * pixels_per_scanline);
+				*at = color;
+				at = framebuffer + (cursor_x * 8) + (j * 2) + 1 + ((cursor_y * 8 + (i * 2) + 1) * pixels_per_scanline);
+				*at = color;
+				*/
 			}
 		}
 	}
@@ -65,6 +77,7 @@ void print_char(int color, char ch) {
 void frame_puts(const char *s) {
 	long n = 0;
 	while (s[n]) {
+		// cursor_x++;
 		print_char(0xffffff, s[n]);
 		n++;
 	}
