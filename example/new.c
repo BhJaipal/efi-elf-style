@@ -60,6 +60,41 @@ void load_kernel_image(
 
 void init_graphics(efi_handle_t img_handle, Kernel_Boot_Info *boot_info, efi_handle_t **handle_buffer);
 
+void puts_vga(char *buf) {
+	short bufh = 0;
+
+	short *vga = (short*)0xb8000;
+
+	int index = 0;
+	for (int i = 0; buf[i]; i++) {
+		if (buf[i] == '\r') {
+			index = ((int)(index / 80)) * 80;
+		}
+		if (buf[i] == '\n') {
+			index += 80;
+		}
+		bufh = 0xf000 | buf[i];
+		vga[index] = bufh;
+	
+	}
+}
+
+uint8 inb(uint16 port)
+{
+	uint8 ret;
+	asm volatile("inb %1, %0" : "=a"(ret) : "Nd"(port));
+	return ret;
+}
+
+/**
+ * outb
+ */
+inline void outb(uint16 port, uint8 val)
+{
+	asm volatile("outb %0, %1\n"
+		"ret"
+		: : "a"(val), "Nd"(port));
+}
 efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 	system_table->cout->set_attribute(system_table->cout, EFI_TEXT_ATTR(EFI_YELLOW, EFI_GREEN));
 	system_table->cout->clear_screen (system_table->cout);
@@ -69,8 +104,6 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 
 	/** Function pointer to the kernel entry point. */
 	void (*kernel_entry)(Kernel_Boot_Info*);
-	/** Boot info struct, passed to the kernel. */
-	Kernel_Boot_Info boot_info = {0};
 
 	efi_memory_descriptor_t *mmap = NULL;
 	uint64 memory_map_key = 0;
@@ -92,6 +125,9 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 	efi_serial_io_protocol_t *serial_proto = NULL;
 	global.boot->locate_protocol(&gSerial, NULL, (void**)&serial_proto);
 	serial_proto->set_attributes(serial_proto, 0, 0, 0, 0, 0, DEFAULT_STOP_BITS);
+
+
+	Kernel_Boot_Info boot_info = {0};
 	init_graphics(img_handle, &boot_info, &graphics_handle_buffer);
 
 	efi_guid_t gEfiSimpleFileSystemProtocolGuid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
@@ -138,21 +174,45 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 	boot_info.memory_map_size = memory_map_size;
 	boot_info.memory_map_descriptor_size = descriptor_size;
 
+	struct __attribute__((packed)) GDTDescriptor {
+		uint16 size;
+		uint64 offset;
+	};
+
+	// Your GDT entries
+	__attribute__((aligned(16)))
+	uint64 gdt64[] = {
+		0x0000000000000000, // Null
+		0x00209a0000000000, // Code (Offset 0x08)
+		0x0000920000000000  // Data (Offset 0x10)
+	};
+
+	struct GDTDescriptor gdt_ptr = {
+		.size = sizeof(gdt64) - 1,
+		.offset = (uint64)gdt64
+	};
+
 	s = global.boot->image.exit_boot_services(img_handle, memory_map_key);
 	ON_ERR(s,, "Can't exit boot service %p %d\r\n", img_handle, memory_map_key);
-	
-	char c = 0;
-	uint32 colour = 0;
-	for (int i = 0;  i < 60; i++) {
-		for (int j = 0; j < 60; j++) {
-			c = (i ^ j) % 256;
-			colour = ((255 - (c % 128)) << 16) | (c << 8) | (c % 128);
-			uint32* at = boot_info.video_mode_info.framebuffer_pointer + i + (j * boot_info.video_mode_info.pixels_per_scanline);
-			*at = colour;
-		}
-	}
-	kernel_entry(&boot_info);
-	
+
+	uint64 boot_info_addr = (uint64)&boot_info;
+	asm volatile("\tcli\n"::: "memory");
+	asm volatile("lgdt %[gdt_ptr_struct]" : : [gdt_ptr_struct] "m"(gdt_ptr));
+	asm volatile(
+        "pushq $0x10\n\t"            // Push Data Segment selector (0x10)
+        "pushq %%rsp\n\t"            // Push current Stack Pointer
+        "pushfq\n\t"                 // Push Flags
+        "pushq $0x08\n\t"            // Push Code Segment selector (0x08)
+        "pushq %[entry]\n\t"         // Push the address to jump to
+        "movq %[info], %%rdi\n\t"    // Pass boot info pointer to kernel (System V ABI)
+        "iretq"                      // The "Magic" jump
+        :
+        : [entry] "m"(kernel_entry), [info] "m"(boot_info_addr)
+        : "memory"
+    );
+	// puts_vga("Hello \r\nWorld VGA\nNigga");
+	// kernel_entry(&boot_info);
+
 	printf("Back to bootloader\r\n");
 
 	efi_input_key_t key;
@@ -249,7 +309,7 @@ void load_segment(efi_file_t *kernel_img, Elf64_phdr_t *phdr) {
 	}
 
 	uint64 zero_fill_count = phdr->p_memsz - phdr->p_filesz;
-	efi_physical_addr_t zero_fill_start = phdr->p_phy_addr - phdr->p_filesz;
+	efi_physical_addr_t zero_fill_start = phdr->p_phy_addr + phdr->p_filesz;
 
 	if (zero_fill_count) {
 		global.boot->set_mem((void*)zero_fill_start, zero_fill_count, 0);
@@ -264,7 +324,7 @@ void init_graphics(efi_handle_t img_handle, Kernel_Boot_Info *boot_info, efi_han
 	s = global.boot->open_protocol(global.sys->console_out_handle, &gra_out_guid, (void**)&graphics_out_proto, img_handle, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
 	ON_ERR(s,, "can't connect GO proto to cout handle\r\n");
 	if (graphics_out_proto) {
-		s = set_graphics_mode(graphics_out_proto, 1024, 768, PIXEL_BGR_RESERVED_8BIT_PER_COLOR);
+		s = set_graphics_mode(graphics_out_proto, 640 * 3, 480 * 3, PIXEL_BGR_RESERVED_8BIT_PER_COLOR);
 
 		ON_ERR(s,, "can't set graphics mode\r\n");
 		boot_info->video_mode_info.framebuffer_pointer =

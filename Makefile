@@ -21,10 +21,10 @@ MAIN = example/new.c
 all: run
 
 build/%.o: %.S
-	$(CC) -I/usr/include/efi/ -Iinclude $(CFLAGS) -Wall -c $< -o $@
+	$(CC) -Iinclude $(CFLAGS) -Wall -c $< -o $@
 
 build/%.o: %.c
-	$(CC) -I/usr/include/efi/ -Iinclude $(CFLAGS) -Wall -c $< -o $@
+	$(CC) -Iinclude $(CFLAGS) -Wall -c $< -o $@
 
 
 main.efi: $(call SRC_to_OBJ,$(MAIN)) $(OBJ)
@@ -39,7 +39,7 @@ build/kernel/%.o: example/kernel/%.c
 	gcc $< -c -o $@ -ffreestanding -fno-pie -fPIE -Iinclude/kernel
 
 kernel.elf: build/kernel/kernel.o build/kernel/entry.o build/kernel/port.o build/kernel/uart.o build/kernel/vga.o
-	ld -T./example/kernel/kernel.ld -o $@ $^
+	ld -T./example/kernel/kernel.ld -o $@ --entry kernel_entry $^
 
 
 uefi.img: main.efi kernel.elf

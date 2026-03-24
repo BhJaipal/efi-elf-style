@@ -1,6 +1,7 @@
 #ifndef EFI_ELF_ELF
 
 #define Elf_Ident_Magic "\177ELF"
+char a[] = Elf_Ident_Magic;
 
 #include "types.h"
 
