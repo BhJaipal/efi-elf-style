@@ -3,7 +3,6 @@
 *.dis
 *.efi
 *.img
-startup.nsh
 
 # Object files
 *.o
