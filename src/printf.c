@@ -6,7 +6,7 @@
 
 uint64 print_str(char* str, simple_text_output_interface_t *out);
 uint64 print_wstr(short* str, simple_text_output_interface_t *out);
-uint64 print_long(uint64 val, simple_text_output_interface_t *out);
+uint64 print_long(int64 val, simple_text_output_interface_t *out);
 uint64 print_ptr(void *val, simple_text_output_interface_t *out);
 /*
  * @precision: float 7 and double 15 precision
@@ -224,7 +224,7 @@ uint64 print_wstr(short* str, simple_text_output_interface_t *out) {
 	return res_len;
 }
 
-uint64 print_long(uint64 val, simple_text_output_interface_t *out) {
+uint64 print_long(int64 val, simple_text_output_interface_t *out) {
 	if (!val) {
 		out->output_string(out, (short*)u"0");
 		return 1;
@@ -459,6 +459,116 @@ void efi_error(efi_status status, char *fmt, ...) {
 	va_end(args);
 }
 void wefi_error(efi_status status, wuchar *fmt, ...) {
+	switch (status) {
+		case EFI_SUCCESS:
+			printf("[EFI_SUCCESS: ");
+			break;
+		case EFI_LOAD_ERROR:
+			printf("EFI_LOAD_ERROR: ");
+			break;
+		case EFI_INVALID_PARAMETER:
+			printf("[EFI_INVALID_PARAMETER: ");
+			break;
+		case EFI_UNSUPPORTED:
+			printf("[EFI_UNSUPPORTED: ");
+			break;
+		case EFI_BAD_BUFFER_SIZE:
+			printf("[EFI_BAD_BUFFER_SIZE: ");
+			break;
+		case EFI_BUFFER_TOO_SMALL:
+			printf("[EFI_BUFFER_TOO_SMALL: ");
+			break;
+		case EFI_NOT_READY:
+			printf("[EFI_NOT_READY: ");
+			break;
+		case EFI_DEVICE_ERROR:
+			printf("[EFI_DEVICE_ERROR: ");
+			break;
+		case EFI_WRITE_PROTECTED:
+			printf("[EFI_WRITE_PROTECTED: ");
+			break;
+		case EFI_OUT_OF_RESOURCES:
+			printf("[EFI_OUT_OF_RESOURCES: ");
+			break;
+		case EFI_VOLUME_CORRUPTED:
+			printf("[EFI_VOLUME_CORRUPTED: ");
+			break;
+		case EFI_VOLUME_FULL:
+			printf("[EFI_VOLUME_FULL: ");
+			break;
+		case EFI_NO_MEDIA:
+			printf("[EFI_NO_MEDIA: ");
+			break;
+		case EFI_MEDIA_CHANGED:
+			printf("[EFI_MEDIA_CHANGED: ");
+			break;
+		case EFI_NOT_FOUND:
+			printf("[EFI_NOT_FOUND: ");
+			break;
+		case EFI_ACCESS_DENIED:
+			printf("[EFI_ACCESS_DENIED: ");
+			break;
+		case EFI_NO_RESPONSE:
+			printf("[EFI_NO_RESPONSE: ");
+			break;
+		case EFI_NO_MAPPING:
+			printf("[EFI_NO_MAPPING: ");
+			break;
+		case EFI_TIMEOUT:
+			printf("[EFI_TIMEOUT: ");
+			break;
+		case EFI_NOT_STARTED:
+			printf("[EFI_NOT_STARTED: ");
+			break;
+		case EFI_ALREADY_STARTED:
+			printf("[EFI_ALREADY_STARTED: ");
+			break;
+		case EFI_ABORTED:
+			printf("[EFI_ABORTED: ");
+			break;
+		case EFI_ICMP_ERROR:
+			printf("[EFI_ICMP_ERROR: ");
+			break;
+		case EFI_TFTP_ERROR:
+			printf("[EFI_TFTP_ERROR: ");
+			break;
+		case EFI_PROTOCOL_ERROR:
+			printf("[EFI_PROTOCOL_ERROR: ");
+			break;
+		case EFI_INCOMPATIBLE_VERSION:
+			printf("[EFI_INCOMPATIBLE_VERSION: ");
+			break;
+		case EFI_SECURITY_VIOLATION:
+			printf("[EFI_SECURITY_VIOLATION: ");
+			break;
+		case EFI_CRC_ERROR:
+			printf("[EFI_CRC_ERROR: ");
+			break;
+		case EFI_END_OF_MEDIA:
+			printf("[EFI_END_OF_MEDIA: ");
+			break;
+		case EFI_END_OF_FILE:
+			printf("[EFI_END_OF_FILE: ");
+			break;
+		case EFI_INVALID_LANGUAGE:
+			printf("[EFI_INVALID_LANGUAGE: ");
+			break;
+		case EFI_COMPROMISED_DATA:
+			printf("[EFI_COMPROMISED_DATA: ");
+			break;
+		case EFI_WARN_UNKOWN_GLYPH:
+			printf("[EFI_WARN_UNKOWN_GLYPH: ");
+			break;
+		case EFI_WARN_DELETE_FAILURE:
+			printf("[EFI_WARN_DELETE_FAILURE: ");
+			break;
+		case EFI_WARN_WRITE_FAILURE:
+			printf("[EFI_WARN_WRITE_FAILURE: ");
+			break;
+		case EFI_WARN_BUFFER_TOO_SMALL:
+			printf("[EFI_WARN_BUFFER_TOO_SMALL: ");
+			break;
+	}
 	va_list args;
 	va_start(args, fmt);
 	vwprint(fmt, args, global.sys->cout);

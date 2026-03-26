@@ -1,15 +1,22 @@
 #include <efi-x86-instruct.h>
+#include <efi-asm.h>
 
-void intrupt(uint64 intrrupt_flag, reg_t *registers) {
-	asm (
-		"mov %0, %%rdx\n"
-		"mov %1, %%rsi\n"
-		"mov %2, %%rdi\n"
-		"mov %3, %%rax\n"
-		::
-			"r"(registers->rdx),
-			"r"(registers->rsi),
-			"r"(registers->rdi),
-			"r"(registers->rax)
+#define DECL(name) \
+	"\t.globl " #name "\n\t" \
+	#name ":\n"
+
+#define RET "\tret\n"
+
+asm(".text\n");
+asm(
+	DECL(asm_cli)
+	"\tcli\n"
+		RET
 	);
-}
+
+asm(
+	DECL(asm_lgdt)
+	"\tlgdt (%rcx)\n"
+		RET
+	);
+

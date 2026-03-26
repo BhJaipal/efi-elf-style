@@ -1,7 +1,6 @@
 #ifndef EFI_ELF_ELF
 
 #define Elf_Ident_Magic "\177ELF"
-char a[] = Elf_Ident_Magic;
 
 #include "types.h"
 
@@ -468,5 +467,16 @@ typedef struct {
 	Elf64_hdr_t  head;
 	Elf64_body_t body;
 } Elf64;
+
+
+#include "efi-prot.h"
+
+void load_segment(efi_file_t *kernel_img, Elf64_phdr_t *phdr);
+void load_kernel_image(
+	input efi_file_t* root_file_system,
+	input wuchar* kernel_image_filename,
+	Elf64 *elf_object
+);
+
 
 #endif /* ifndef EFI_ELF_ELF */

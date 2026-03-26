@@ -17,6 +17,13 @@ typedef struct Efi_lib_flags_t {
 	char lib_initialized: 1;
 } Efi_lib_flags_t;
 
+typedef struct {
+	void    *framebuffer_pointer;
+	uint32  horizontal_resolution;
+	uint32  vertical_resolution;
+	uint32  pixels_per_scanline;
+} Kernel_Boot_Video_Mode_Info;
+
 
 typedef struct {
 	efi_system_table_t      *sys;
@@ -49,6 +56,17 @@ extern uint64 wprintf(unsigned short *fmt, ...);
 extern void exit(efi_status exit_status, int64 data_size, int16 *data);
 extern void efi_error(efi_status status, char *fmt, ...);
 extern void wefi_error(efi_status status, wuchar *fmt, ...);
+void *memcpy(void *dest, const void *src, uint64 n);
+int memcmp(const void *dest, const void *src, uint64 n);
+
+#define ON_ERR(status, body, ...)       \
+	if (status < 0) {                   \
+		efi_error(status, __VA_ARGS__); \
+		body;                           \
+	}
+
+
+void init_graphics(efi_handle_t img_handle, Kernel_Boot_Video_Mode_Info *boot_info, efi_handle_t **handle_buffer);
 // Exit with all other args 0 and NULL
 extern void shutdown();
 

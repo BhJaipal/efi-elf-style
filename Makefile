@@ -1,4 +1,4 @@
-CFLAGS  = -ffreestanding -fno-stack-protector -fno-stack-check -fshort-wchar -mno-red-zone -mabi=ms -Wall -Wno-pointer-to-int-cast
+CFLAGS  = -ffreestanding -fshort-wchar -mno-red-zone -mabi=ms -Wall -Wextra
 LDFLAGS = -nostdlib \
     		-Wl,-subsystem,10 \
     		-Wl,-entry,efi_main \
@@ -64,7 +64,7 @@ build/kernel/%.o: example/kernel/%.c
 build/BOOTX64.img: $(call SRC_to_OBJ,$(MAIN)) $(OBJ)
 	$(call PRINT_STEP_CC, "CC", $@)
 	@$(CC) $(LDFLAGS) -o $@ $^
-	@$(ARCH)-objcopy -R .comment -R .note -R .note.gnu.build-id main.efi
+	@$(ARCH)-objcopy -R .comment -R .note -R .note.gnu.build-id $@
 
 build/kernel.img: build/kernel/entry.o build/kernel/kernel.o build/kernel/port.o build/kernel/uart.o build/kernel/vga.o
 	$(call PRINT_STEP, "LD", $@)
@@ -83,7 +83,7 @@ build/uefi.img: build/BOOTX64.img build/kernel.img
 	@parted $@ -s mkpart EFI fat32 1MiB 100%
 	@parted $@ -s set 1 esp on
 	
-	$(call PRINT_STEP_MSDOS, "MS_UTIL", $@)
+	$(call PRINT_STEP_MSDOS, "MSUTIL", $@)
 	@mformat -i $@@@1M -F
 	@mmd     -i $@@@1M ::/EFI
 	@mmd     -i $@@@1M ::/EFI/BOOT
