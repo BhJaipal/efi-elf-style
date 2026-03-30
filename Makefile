@@ -36,14 +36,8 @@ ELF_OBJ = $(foreach src, $(wildcard example/kernel/*), $(subst example,build,$(b
 
 all: run
 
-build:
-	mkdir build
-build/src:
-	mkdir -p build/src
-build/kernel:
-	mkdir -p build/kernel
-build/example:
-	mkdir -p build/example
+dir:
+	mkdir -p build/{src,kernel,example}
 
 build/%.o: %.S
 	$(call PRINT_STEP_CC, "CC", $(<:.S=.o))
@@ -90,10 +84,30 @@ build/uefi.img: build/BOOTX64.img build/kernel.img
 	@mcopy   -i $@@@1M $< ::/EFI/BOOT/BOOTX64.EFI
 	@mcopy   -i $@@@1M build/kernel.img ::/kernel.elf
 
+
+build/uefi.iso: build/BOOTX64.img build/kernel.img
+	@# Create a tiny FAT image specifically for the ISO's EFI boot record
+	@dd if=/dev/zero of=build/efiboot.img bs=1M count=1 2> /dev/null
+	@mkfs.vfat build/efiboot.img > /dev/null
+	@mmd -i build/efiboot.img ::/EFI
+	@mmd -i build/efiboot.img ::/EFI/BOOT
+	@mcopy -i build/efiboot.img build/BOOTX64.img ::/EFI/BOOT/BOOTX64.EFI
+	@mcopy -i build/efiboot.img build/kernel.img ::/kernel.elf
+	@cp build/efiboot.img build/iso/efiboot.img
 	
+	xorriso -as mkisofs \
+		-R -J -V "NerOS" \
+		-e efiboot.img \
+		-no-emul-boot \
+		-isohybrid-gpt-basdat \
+		-o $@ build/iso/
+
 run: build/uefi.img
 	@printf "  $(GREEN) QEMU $(NC)  $(BOLD)  $<$(NC)\n"
 	@qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -drive file=$<,format=raw -net none
+
+iso: build/uefi.iso
+	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -cdrom $< -m 256M
 
 .ONESHELL:
 clean: $(OBJ) $(ELF_OBJ) build/example/new.o build/BOOTX64.img build/uefi.img build/kernel.img
@@ -101,3 +115,13 @@ clean: $(OBJ) $(ELF_OBJ) build/example/new.o build/BOOTX64.img build/uefi.img bu
 		printf "  $(RED)%-7s$(NC)  $(BOLD)%s$(NC)\n" "RM" "$$file"; \
 		rm $$file; \
 	done
+
+help:
+	@printf "$(YELLOW)help               $(GREEN)Shows this help                   $(NC)\n"
+	@printf "$(YELLOW)clean              $(GREEN)Removes all build files           $(NC)\n"
+	@printf "$(YELLOW)build/uefi.img     $(GREEN)Creates example OS image          $(NC)\n"
+	@printf "$(YELLOW)build/kernel.img   $(GREEN)Compiles example kernel image     $(NC)\n"
+	@printf "$(YELLOW)build/BOOTX64.img  $(GREEN)Compiles example bootloader image $(NC)\n"
+	@printf "$(YELLOW)run                $(GREEN)Run OS image                      $(NC)\n"
+	@printf "$(YELLOW)iso                $(GREEN)Run OS ISO                        $(NC)\n"
+

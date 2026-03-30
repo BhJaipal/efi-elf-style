@@ -3,6 +3,8 @@
 *.dis
 *.efi
 *.img
+*.iso
+*.EFI
 
 # Object files
 *.o
