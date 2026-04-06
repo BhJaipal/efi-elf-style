@@ -36,16 +36,26 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 	uint32 descriptor_version;
 
 	efi_status s = global.boot->memory.get_memory_map(&memory_map_size, NULL, &memory_map_key, &descriptor_size, NULL);
-	ON_ERR(s, , "Can't get MMap by test\r\n");
 
-	memory_map_size += (2 * (descriptor_size));
-	s = global.boot->memory.allocate_pool(EFI_LOADER_DATA, memory_map_size, (void**)&mmap);
-	ON_ERR(s, return s, "Can't allocate MMap pool\r\n");
+	if (s < 0) {
+        // Add a safety margin of at least 4 descriptors. 
+        // Allocating memory can actually create new map entries!
+        memory_map_size += (descriptor_size * 4);
+        
+        s = global.boot->memory.allocate_pool(EFI_LOADER_DATA, memory_map_size, (void**)&mmap);
+        ON_ERR(s, return s, "Failed to allocate memory map pool\r\n");
+    } else {
+        // If it didn't return 'too small', something else is wrong
+        ON_ERR(s, return s, "Unexpected MMap probe status\r\n");
+    }
+	printf("Back out\r\n");
 
 	efi_guid_t gSerial = EFI_SERIAL_IO_PROTOCOL_GUID;
 	efi_serial_io_protocol_t *serial_proto = NULL;
-	global.boot->locate_protocol(&gSerial, NULL, (void**)&serial_proto);
-	serial_proto->set_attributes(serial_proto, 0, 0, 0, 0, 0, DEFAULT_STOP_BITS);
+	s = global.boot->locate_protocol(&gSerial, NULL, (void**)&serial_proto);
+	ON_ERR(s, , "Can't get serial protocol\r\n");
+	s = serial_proto->set_attributes(serial_proto, 0, 0, 0, 0, 0, DEFAULT_STOP_BITS);
+	ON_ERR(s, , "Can't set serial attr\r\n");
 
 
 	Kernel_Boot_Info boot_info = {0};

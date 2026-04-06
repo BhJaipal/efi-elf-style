@@ -15,7 +15,7 @@ void initialize_lib(efi_handle_t ImageHandle, efi_system_table_t *SystemTable) {
     global.runtime = SystemTable->runtime_services;
 
 	if (ImageHandle) {
-		// efi_debug_variable();
+		efi_debug_variable();
 	}
 }
 // NOTE: put it in efi-debug.h

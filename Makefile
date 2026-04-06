@@ -87,27 +87,34 @@ build/uefi.img: build/BOOTX64.img build/kernel.img
 
 build/uefi.iso: build/BOOTX64.img build/kernel.img
 	@# Create a tiny FAT image specifically for the ISO's EFI boot record
+	$(call PRINT_STEP_MSDOS, "DD", $@)
 	@dd if=/dev/zero of=build/efiboot.img bs=1M count=1 2> /dev/null
+	$(call PRINT_STEP_MSDOS, "MSUTIL", $@)
 	@mkfs.vfat build/efiboot.img > /dev/null
-	@mmd -i build/efiboot.img ::/EFI
-	@mmd -i build/efiboot.img ::/EFI/BOOT
-	@mcopy -i build/efiboot.img build/BOOTX64.img ::/EFI/BOOT/BOOTX64.EFI
-	@mcopy -i build/efiboot.img build/kernel.img ::/kernel.elf
-	@cp build/efiboot.img build/iso/efiboot.img
+	@mmd   -i build/iso/efiboot.img                   ::/EFI
+	@mmd   -i build/iso/efiboot.img                   ::/EFI/BOOT
+	@mcopy -i build/iso/efiboot.img build/BOOTX64.img ::/EFI/BOOT/BOOTX64.EFI
+	@mcopy -i build/iso/efiboot.img build/kernel.img  ::/kernel.elf
+	@mkdir -p build/iso/EFI/BOOT
 	
-	xorriso -as mkisofs \
+	@printf "   $(CYAN)%-7s$(NC)  $(BOLD)%s$(NC)\n" "XORRISO" "$@"
+	@xorriso -as mkisofs \
 		-R -J -V "NerOS" \
 		-e efiboot.img \
 		-no-emul-boot \
+		-append_partition 2 0xef build/iso/efiboot.img \
+		-partition_offset 16 \
 		-isohybrid-gpt-basdat \
-		-o $@ build/iso/
+		-o $@ build/iso/ 2> /dev/null
 
 run: build/uefi.img
 	@printf "  $(GREEN) QEMU $(NC)  $(BOLD)  $<$(NC)\n"
 	@qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -drive file=$<,format=raw -net none
+	@printf "\n\r"
 
 iso: build/uefi.iso
-	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -cdrom $< -m 256M
+	@printf "  $(GREEN) QEMU $(NC)  $(BOLD)  $<$(NC)\n"
+	@qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -cdrom $< -m 256M
 
 .ONESHELL:
 clean: $(OBJ) $(ELF_OBJ) build/example/new.o build/BOOTX64.img build/uefi.img build/kernel.img
