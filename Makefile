@@ -34,10 +34,10 @@ MAIN = example/new.c
 
 ELF_OBJ = $(foreach src, $(wildcard example/kernel/*), $(subst example,build,$(basename $(src)).o))
 
-all: run
+all: help
 
 dir:
-	mkdir -p build/{src,kernel,example}
+	mkdir -p build/{src,kernel,example,iso}
 
 build/%.o: %.S
 	$(call PRINT_STEP_CC, "CC", $(<:.S=.o))
@@ -69,45 +69,46 @@ build/uefi.img: build/BOOTX64.img build/kernel.img
 	@printf "\e[1;32m CREATING DISK IMG\e[0m\n"
 	@# 1. Create a 64MB empty file
 	$(call PRINT_STEP_MSDOS, "DD", $@)
-	@dd if=/dev/zero of=$@ bs=1M count=64 2> /dev/null
+	@if [ -f $@ ]; then rm $@; fi
+	@dd if=/dev/zero of=$@ bs=16M count=4 2> /dev/null
 	
 	@# 2. Create GPT partition table and a single EFI partition
 	$(call PRINT_STEP_MSDOS, "PARTED", $@)
 	@parted $@ -s mklabel gpt
-	@parted $@ -s mkpart EFI fat32 1MiB 100%
+	@parted $@ -s mkpart EFI fat32 2MiB 100%
 	@parted $@ -s set 1 esp on
 	
 	$(call PRINT_STEP_MSDOS, "MSUTIL", $@)
-	@mformat -i $@@@1M -F
-	@mmd     -i $@@@1M ::/EFI
-	@mmd     -i $@@@1M ::/EFI/BOOT
-	@mcopy   -i $@@@1M $< ::/EFI/BOOT/BOOTX64.EFI
-	@mcopy   -i $@@@1M build/kernel.img ::/kernel.elf
+	@mformat -i $@@@2M    -F -n "NerOS"
+	@mmd     -i $@@@2M    ::/EFI
+	@mmd     -i $@@@2M    ::/EFI/BOOT
+	@mcopy   -i $@@@2M $< ::/EFI/BOOT/BOOTX64.EFI
+	@mcopy   -i $@@@2M build/kernel.img ::/kernel.elf
 
-
-build/uefi.iso: build/BOOTX64.img build/kernel.img
-	@# Create a tiny FAT image specifically for the ISO's EFI boot record
+build/iso/efiboot.img: build/BOOTX64.img build/kernel.img
 	$(call PRINT_STEP_MSDOS, "DD", $@)
-	@dd if=/dev/zero of=build/efiboot.img bs=1M count=1 2> /dev/null
-	$(call PRINT_STEP_MSDOS, "MSUTIL", $@)
-	@mkfs.vfat build/efiboot.img > /dev/null
-	@mmd   -i build/iso/efiboot.img                   ::/EFI
-	@mmd   -i build/iso/efiboot.img                   ::/EFI/BOOT
-	@mcopy -i build/iso/efiboot.img build/BOOTX64.img ::/EFI/BOOT/BOOTX64.EFI
-	@mcopy -i build/iso/efiboot.img build/kernel.img  ::/kernel.elf
-	@mkdir -p build/iso/EFI/BOOT
+	@echo "" > $@
+	@dd if=/dev/zero of=$@ bs=1M count=17 2> /dev/null
 	
+	$(call PRINT_STEP_MSDOS, "MSUTIL", $@)
+	@mkfs.vfat $@ -F 16  > /dev/null
+	@mmd   -i  $@                   ::/EFI
+	@mmd   -i  $@                   ::/EFI/BOOT
+	@mcopy -i  $@ build/BOOTX64.img ::/EFI/BOOT/BOOTX64.EFI
+	@mcopy -i  $@ build/kernel.img  ::/kernel.elf
+	@mkdir -p  build/iso/EFI/BOOT
+
+build/uefi.iso: build/iso/efiboot.img
 	@printf "   $(CYAN)%-7s$(NC)  $(BOLD)%s$(NC)\n" "XORRISO" "$@"
 	@xorriso -as mkisofs \
 		-R -J -V "NerOS" \
-		-e efiboot.img \
+		-e $$(basename $<) \
 		-no-emul-boot \
-		-append_partition 2 0xef build/iso/efiboot.img \
-		-partition_offset 16 \
+		-append_partition 2 0xef $< \
 		-isohybrid-gpt-basdat \
 		-o $@ build/iso/ 2> /dev/null
 
-run: build/uefi.img
+img: build/uefi.img
 	@printf "  $(GREEN) QEMU $(NC)  $(BOLD)  $<$(NC)\n"
 	@qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -drive file=$<,format=raw -net none
 	@printf "\n\r"
@@ -115,6 +116,7 @@ run: build/uefi.img
 iso: build/uefi.iso
 	@printf "  $(GREEN) QEMU $(NC)  $(BOLD)  $<$(NC)\n"
 	@qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -cdrom $< -m 256M
+	@printf "\n\r"
 
 .ONESHELL:
 clean: $(OBJ) $(ELF_OBJ) build/example/new.o build/BOOTX64.img build/uefi.img build/kernel.img
@@ -124,11 +126,14 @@ clean: $(OBJ) $(ELF_OBJ) build/example/new.o build/BOOTX64.img build/uefi.img bu
 	done
 
 help:
-	@printf "$(YELLOW)help               $(GREEN)Shows this help                   $(NC)\n"
-	@printf "$(YELLOW)clean              $(GREEN)Removes all build files           $(NC)\n"
-	@printf "$(YELLOW)build/uefi.img     $(GREEN)Creates example OS image          $(NC)\n"
-	@printf "$(YELLOW)build/kernel.img   $(GREEN)Compiles example kernel image     $(NC)\n"
-	@printf "$(YELLOW)build/BOOTX64.img  $(GREEN)Compiles example bootloader image $(NC)\n"
-	@printf "$(YELLOW)run                $(GREEN)Run OS image                      $(NC)\n"
-	@printf "$(YELLOW)iso                $(GREEN)Run OS ISO                        $(NC)\n"
+	@printf "$(YELLOW)help               $(GREEN)Shows this help                        $(NC)\n"
+	@printf "$(YELLOW)dir                $(GREEN)Creates essential dirs, Use it 1st     $(NC)\n"
+	@printf "$(YELLOW)clean              $(GREEN)Removes all build files                $(NC)\n"
+	@printf "$(YELLOW)build/efiboot.img  $(GREEN)Creates example OS ISO image sector    $(NC)\n"
+	@printf "$(YELLOW)build/uefi.img     $(GREEN)Creates example OS image               $(NC)\n"
+	@printf "$(YELLOW)build/uefi.iso     $(GREEN)Creates example OS ISO                 $(NC)\n"
+	@printf "$(YELLOW)build/kernel.img   $(GREEN)Compiles example kernel image          $(NC)\n"
+	@printf "$(YELLOW)build/BOOTX64.img  $(GREEN)Compiles example bootloader image      $(NC)\n"
+	@printf "$(YELLOW)img                $(GREEN)Run OS image                           $(NC)\n"
+	@printf "$(YELLOW)iso                $(GREEN)Run OS ISO                             $(NC)\n"
 

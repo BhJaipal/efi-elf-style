@@ -14,6 +14,5 @@ typedef struct {
 
 #define NAKED __attribute__((naked))
 
-void intrupt(uint64 intrrupt_flag, reg_t *registers);
 
 #endif /* ifndef EFI_X86_INSTRUCT */

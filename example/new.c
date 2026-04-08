@@ -1,11 +1,7 @@
-#include "efi-api.h"
-#include "types.h"
 #include <efi-err.h>
 #include <efi-lib.h>
-#include <efi-prot.h>
 #include <efi-ser.h>
 #include <efi-elf.h>
-#include <efi-asm.h>
 
 #define KERNEL_EXECUTABLE_PATH u"\\kernel.elf"
 
@@ -113,6 +109,10 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 		0x0000920000000000  // Data (Offset 0x10)
 	};
 
+	struct __attribute__((packed)) GDTDescriptor {
+		unsigned short      size;
+		unsigned long long  offset;
+	};
 	struct GDTDescriptor gdt_ptr = {
 		.size = sizeof(gdt64) - 1,
 		.offset = (uint64)gdt64
@@ -122,9 +122,9 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
 	ON_ERR(s,, "Can't exit boot service %p %d\r\n", img_handle, memory_map_key);
 
 	uint64 boot_info_addr = (uint64)&boot_info;
-	asm_cli();
-	asm_lgdt(gdt_ptr);
 	asm volatile(
+		"cli\n\t"
+		"lgdt %0\n\t"
         "pushq $0x10\n\t"            // Push Data Segment selector (0x10)
         "pushq %%rsp\n\t"            // Push current Stack Pointer
         "pushfq\n\t"                 // Push Flags
@@ -133,7 +133,10 @@ efi_status efi_main(efi_handle_t img_handle, efi_system_table_t *system_table) {
         "movq %[info], %%rdi\n\t"    // Pass boot info pointer to kernel (System V ABI)
         "iretq"                      // The "Magic" jump
         :
-        : [entry] "m"(kernel_entry), [info] "m"(boot_info_addr)
+		:
+			"m"(gdt_ptr),
+			[entry] "m"(kernel_entry),
+			[info] "m"(boot_info_addr)
         : "memory"
     );
 

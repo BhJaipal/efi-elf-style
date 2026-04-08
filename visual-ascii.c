@@ -1,122 +1,22 @@
-#include <stdint.h>
-#include <uart.h>
-
-typedef struct s_memory_region_desc {
-	uint32_t type;
-	uint32_t pad;
-	uint64_t *physical_start;
-	uint64_t *virtual_start;
-	uint64_t count;
-	uint64_t attributes;
-} Memory_Map_Descriptor;
-
-typedef struct s_boot_video_info {
-	uint32_t* framebuffer_pointer;
-	uint32_t horizontal_resolution;
-	uint32_t vertical_resolution;
-	uint32_t pixels_per_scanline;
-} Kernel_Boot_Video_Mode_Info;
-
-extern void asm_hlt_loop();
-extern void asm_halt();
-#include <vga.h>
-/**
- * @brief Boot info struct.
- * Contains information passed to the kernel at boot time by the bootloader.
- */
-typedef struct s_boot_info {
-	Memory_Map_Descriptor* memory_map;
-	uint64_t mmap_size;
-	uint64_t mmap_descriptor_size;
-	Kernel_Boot_Video_Mode_Info video_mode_info;
-} Boot_Info;
-
-uint32_t *framebuffer = 0;
-uint32_t pixels_per_scanline = 0;
-
-int cursor_x = 0;
-int cursor_y = 0;
-int new_line_pad = 0;
-
+#include <stdio.h>
 unsigned char font8x8_basic[128][8];
 
-void print_char(int color, char ch) {
-	if (ch == '\n') {
-		cursor_x = 0;
-		new_line_pad = 1;
-		cursor_y += 1;
-		return;
-	}
-	if (ch < ' ' || ch == 0x7f) {
-		return;
-	}
-	if (ch == ' ') {
-		cursor_x++;
-		return;
-	}
-	for (char i = 0; i < 8; i++) {
-		for (int j = 0; j < 8; j++) {
-			if ((font8x8_basic[ch][i] >> j) & 3) {
-				uint32_t *at = 0;
-				at = framebuffer + (cursor_x * 8) + (j) + 1 + ((cursor_y * 8 + i) * pixels_per_scanline);
-				*at = color;
-				/*
-				at = framebuffer + (cursor_x * 8) + (j) + ((cursor_y * 8 + (i * 2)) * pixels_per_scanline);
-				*at = color;
-				at = framebuffer + (cursor_x * 8) + (j) + ((cursor_y * 8 + (i * 2) + 1) * pixels_per_scanline);
-				*at = color;
-				at = framebuffer + (cursor_x * 8) + (j * 2) + ((cursor_y * 8 + (i * 2)) * pixels_per_scanline);
-				*at = color;
-				at = framebuffer + (cursor_x * 8) + (j * 2) + 1 + ((cursor_y * 8 + (i * 2) + 1) * pixels_per_scanline);
-				*at = color;
-				*/
+int main(int argc, char *argv[])
+{
+	char data[] = { 0x18, 0x3C, 0x3C, 0x18, 0x18, 0x00, 0x18, 0x00};
+	for (int x = 0; x < 16; x++) {
+		for (int i = 0; i < 8; i++) {
+			for (int k = 0; k < 8; k++) {
+				for (int j = 0; j < 8; j++) {
+					printf((font8x8_basic[x * 8 + k][i] >> j) & 1 ? "@" : " ");
+				}
+				printf("  ");
 			}
+			printf("\n");
 		}
 	}
-	cursor_x++;
+	return 0;
 }
-
-void frame_puts(const char *s) {
-	long n = 0;
-	while (s[n]) {
-		// cursor_x++;
-		print_char(0xffffff, s[n]);
-		n++;
-	}
-}
-
-void kernel_main(Boot_Info *boot) {
-	char name[] = "Kernel loaded\nHello Jaipal from 64-bit\nNew line 3";
-
-	uart_initialize();
-	framebuffer = boot->video_mode_info.framebuffer_pointer;
-	pixels_per_scanline = boot->video_mode_info.pixels_per_scanline;
-
-	uint32_t color = 0;
-	for (int i = 0;  i < 640 * 2; i++) {
-		for (int j = 0; j < 480 * 2; j++) {
-			// color = (((i * j) % 128) << 16) | (((i * j) % 128) << 8) | ((i * j) % 256);
-			char c = j / 10;
-			color = (c << 16) | (c << 8) | c;
-			uint32_t* at = boot->video_mode_info.framebuffer_pointer + i + (j * boot->video_mode_info.pixels_per_scanline);
-			*at = color;
-		}
-	};
-
-	frame_puts(name);
-	asm_hlt_loop();
-}
-
-
-
-uint64_t strlen(const char *s) {
-	long res = 0;
-	while (s[res]) {
-		res++;
-	}
-	return res;
-}
-
 unsigned char font8x8_basic[128][8] = {
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},   // U+0000 (nul)
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},   // U+0001
@@ -245,22 +145,5 @@ unsigned char font8x8_basic[128][8] = {
     { 0x18, 0x18, 0x18, 0x00, 0x18, 0x18, 0x18, 0x00},   // U+007C (|)
     { 0x07, 0x0C, 0x0C, 0x38, 0x0C, 0x0C, 0x07, 0x00},   // U+007D (})
     { 0x6E, 0x3B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},   // U+007E (~)
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}    // U+007F
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},   // U+007F
 };
-
-#define DECL(name) \
-	"\t.globl " #name "\n\t" \
-	#name ":\n"
-
-#define RET "\tret\n"
-asm(
-	DECL(asm_hlt_loop)
-	  "\thlt\n"
-		"\tjmp asm_hlt_loop\n"
-	RET
-);
-asm(
-	DECL(asm_halt)
-	"\thlt\n"
-		RET
-);
