@@ -126,14 +126,14 @@ clean: $(OBJ) $(ELF_OBJ) build/example/new.o build/BOOTX64.img build/uefi.img bu
 	done
 
 help:
-	@printf "$(YELLOW)help               $(GREEN)Shows this help                        $(NC)\n"
-	@printf "$(YELLOW)dir                $(GREEN)Creates essential dirs, Use it 1st     $(NC)\n"
-	@printf "$(YELLOW)clean              $(GREEN)Removes all build files                $(NC)\n"
-	@printf "$(YELLOW)build/efiboot.img  $(GREEN)Creates example OS ISO image sector    $(NC)\n"
-	@printf "$(YELLOW)build/uefi.img     $(GREEN)Creates example OS image               $(NC)\n"
-	@printf "$(YELLOW)build/uefi.iso     $(GREEN)Creates example OS ISO                 $(NC)\n"
-	@printf "$(YELLOW)build/kernel.img   $(GREEN)Compiles example kernel image          $(NC)\n"
-	@printf "$(YELLOW)build/BOOTX64.img  $(GREEN)Compiles example bootloader image      $(NC)\n"
-	@printf "$(YELLOW)img                $(GREEN)Run OS image                           $(NC)\n"
-	@printf "$(YELLOW)iso                $(GREEN)Run OS ISO                             $(NC)\n"
+	@printf "$(GREEN)help                   $(YELLOW)Shows this help                        $(NC)\n"
+	@printf "$(GREEN)dir                    $(YELLOW)Creates essential dirs, Use it 1st     $(NC)\n"
+	@printf "$(GREEN)clean                  $(YELLOW)Removes all build files                $(NC)\n"
+	@printf "$(GREEN)build/iso/efiboot.img  $(YELLOW)Creates example OS ISO image sector    $(NC)\n"
+	@printf "$(GREEN)build/uefi.img         $(YELLOW)Creates example OS image               $(NC)\n"
+	@printf "$(GREEN)build/uefi.iso         $(YELLOW)Creates example OS ISO                 $(NC)\n"
+	@printf "$(GREEN)build/kernel.img       $(YELLOW)Compiles example kernel image          $(NC)\n"
+	@printf "$(GREEN)build/BOOTX64.img      $(YELLOW)Compiles example bootloader image      $(NC)\n"
+	@printf "$(GREEN)img                    $(YELLOW)Run OS image                           $(NC)\n"
+	@printf "$(GREEN)iso                    $(YELLOW)Run OS ISO                             $(NC)\n"
 
